@@ -567,6 +567,20 @@
         }
 
         /**
+         * Parse a stored font size value, preserving missing values as invalid.
+         *
+         * @param {string | null} value
+         * @returns {number}
+         */
+        function parseStoredFontSize(value) {
+          if (value === null) {
+            return Number.NaN;
+          }
+
+          return Number(value);
+        }
+
+        /**
          * Clamp a font size to the supported editor range.
          *
          * @param {number} nextFontSize
@@ -809,7 +823,7 @@
         function loadInitialState() {
           const storedText = loadStoredValue(STORAGE_KEYS.text);
           const storedTheme = loadStoredValue(STORAGE_KEYS.theme);
-          const storedFontSize = Number(loadStoredValue(STORAGE_KEYS.fontSize));
+          const storedFontSize = parseStoredFontSize(loadStoredValue(STORAGE_KEYS.fontSize));
 
           state.text = storedText ?? "";
           state.theme = storedTheme === "dark" ? "dark" : "light";
@@ -849,7 +863,7 @@
           }
 
           if (event.key === STORAGE_KEYS.fontSize) {
-            const nextFontSize = Number(event.newValue);
+            const nextFontSize = parseStoredFontSize(event.newValue);
             updateFontSize(Number.isFinite(nextFontSize) ? nextFontSize : DEFAULT_FONT_SIZE, false);
           }
         });
