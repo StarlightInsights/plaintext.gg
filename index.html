@@ -322,9 +322,8 @@
 
         <div class="dialog-copy">
           <p>plaintext.gg is a distraction-free writing tool.</p>
-          <p>no formatting. no folders. no sync conflicts.
-
-just open the page and start typing.</p>
+          <p>no formatting. no folders. no sync conflicts.</p>
+          <p>just open the page and start typing.</p>
           <p>your text is saved locally in your browser.
 nothing is sent to any server. ever.</p>
           <p>it is the simplest way to write.</p>
@@ -365,6 +364,7 @@ is not needing one at all.</p>
         const FONT_STEP = 2;
         const MIN_FONT_SIZE = 10;
         const MAX_FONT_SIZE = 34;
+        const COPY_FEEDBACK_DURATION_MS = 1200;
 
         /** @typedef {"light" | "dark"} Theme */
 
@@ -390,6 +390,7 @@ is not needing one at all.</p>
         const dialogs = /** @type {HTMLDialogElement[]} */ (
           Array.from(document.querySelectorAll("dialog"))
         );
+        let copyFeedbackTimeoutId;
 
         /** @type {AppState} */
         const state = {
@@ -482,6 +483,20 @@ is not needing one at all.</p>
           decreaseFontButton.disabled = clampedFontSize <= MIN_FONT_SIZE;
           increaseFontButton.disabled = clampedFontSize >= MAX_FONT_SIZE;
           saveStoredValue(STORAGE_KEYS.fontSize, String(clampedFontSize));
+        }
+
+        /**
+         * Show temporary feedback in the copy button label.
+         *
+         * @param {string} label
+         * @returns {void}
+         */
+        function showCopyFeedback(label) {
+          window.clearTimeout(copyFeedbackTimeoutId);
+          copyButton.textContent = label;
+          copyFeedbackTimeoutId = window.setTimeout(() => {
+            copyButton.textContent = "copy";
+          }, COPY_FEEDBACK_DURATION_MS);
         }
 
         /**
@@ -624,8 +639,9 @@ is not needing one at all.</p>
         copyButton.addEventListener("click", async () => {
           try {
             await copyPlainText(editor.value);
+            showCopyFeedback("copied");
           } catch {
-            /* Clipboard access may require a permission prompt or user gesture. */
+            showCopyFeedback("copy failed");
           }
         });
 
