@@ -3,14 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="plaintext.gg is a distraction-free plain text editor that saves locally in your browser."
+    />
+    <meta
+      name="keywords"
+      content="plain text editor, distraction free writing, local storage notes, plaintext.gg"
+    />
+    <meta name="author" content="Starlight Insights" />
+    <meta property="og:title" content="plaintext.gg" />
+    <meta
+      property="og:description"
+      content="A distraction-free plain text editor that saves locally in your browser."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="plaintext.gg" />
+    <meta
+      name="twitter:description"
+      content="A distraction-free plain text editor that saves locally in your browser."
+    />
     <link rel="icon" href="./favicon.ico" sizes="any" />
-    <title>Plaintext.gg</title>
+    <title>plaintext.gg</title>
     <style>
       @font-face {
         font-family: "CommitMono-300-Regular";
         src: url("./fonts/CommitMono-300-Regular.woff2") format("woff2");
         font-style: normal;
-        font-weight: 400;
+        font-weight: normal;
         font-display: swap;
       }
 
@@ -18,7 +39,7 @@
         font-family: "CommitMono-250-Regular";
         src: url("./fonts/CommitMono-250-Regular.woff2") format("woff2");
         font-style: normal;
-        font-weight: 400;
+        font-weight: normal;
         font-display: swap;
       }
 
@@ -26,7 +47,7 @@
         font-family: "CommitMono-200-Regular";
         src: url("./fonts/CommitMono-200-Regular.woff2") format("woff2");
         font-style: normal;
-        font-weight: 400;
+        font-weight: normal;
         font-display: swap;
       }
 
@@ -116,6 +137,11 @@
         align-items: center;
         gap: 0.875rem;
         flex-wrap: wrap;
+      }
+
+      .editor-controls {
+        margin-left: auto;
+        padding-left: 0.9rem;
       }
 
       .font-controls {
@@ -264,7 +290,11 @@
 
       .dialog-copy p {
         margin: 0;
-        white-space: pre-line;
+        white-space: normal;
+      }
+
+      .nowrap {
+        white-space: nowrap;
       }
 
       .dialog-copy a,
@@ -344,6 +374,11 @@
           gap: 0.75rem;
         }
 
+        .editor-controls {
+          margin-left: 0;
+          padding-left: 0;
+        }
+
         .editor {
           padding: 1rem 0.75rem 0.75rem;
         }
@@ -362,7 +397,7 @@
         <button class="control-button" type="button" data-open-dialog="privacy-dialog">privacy</button>
       </nav>
 
-      <nav class="controls" aria-label="Editor">
+      <nav class="controls editor-controls" aria-label="Editor">
         <span class="controls font-controls" aria-label="Font size controls">
           <button
             class="control-button"
@@ -429,8 +464,7 @@
           <p>plaintext.gg is a distraction-free writing tool.</p>
           <p>no formatting. no folders. no sync conflicts.</p>
           <p>just open the page and start typing.</p>
-          <p>your text is saved locally in your browser.
-nothing is sent to any server. ever.</p>
+          <p>your text is saved locally in your browser. nothing is sent to any server. ever.</p>
           <p>it is the simplest way to write.</p>
         </div>
       </div>
@@ -447,13 +481,11 @@ nothing is sent to any server. ever.</p>
 
         <div class="dialog-copy">
           <p>plaintext.gg stores everything in your browser's localStorage.</p>
-          <p>no cookies. no analytics. no tracking.
-no accounts. no server. no database.</p>
+          <p>no cookies. no analytics. no tracking. no accounts. no server. no database.</p>
           <p>your text never leaves your device.</p>
-          <p>the entire site is static HTML, CSS, JavaScript, <span style="white-space: nowrap;">and <a href="https://commitmono.com/" target="_blank" rel="noopener noreferrer">fonts</a>.</span></p>
+          <p>the entire site is static HTML, CSS, JavaScript, <span class="nowrap">and <a href="https://commitmono.com/" target="_blank" rel="noopener noreferrer">fonts</a>.</span></p>
           <p>you can verify this yourself — <a href="https://github.com/StarlightInsights/Plaintext.gg" target="_blank" rel="noopener noreferrer">view source</a>.</p>
-          <p>we believe the best privacy policy
-is not needing one at all.</p>
+          <p>we believe the best privacy policy is not needing one at all.</p>
         </div>
       </div>
     </dialog>
@@ -549,16 +581,46 @@ is not needing one at all.</p>
          * @template {(...args: any[]) => void} T
          * @param {T} callback
          * @param {number} delay
-         * @returns {(...args: Parameters<T>) => void}
+         * @returns {((...args: Parameters<T>) => void) & { cancel: () => void; flush: () => void }}
          */
         function debounce(callback, delay) {
           /** @type {number | undefined} */
           let timeoutId;
+          /** @type {Parameters<T> | undefined} */
+          let lastArgs;
 
-          return (...args) => {
+          const debounced = (...args) => {
+            lastArgs = args;
             window.clearTimeout(timeoutId);
-            timeoutId = window.setTimeout(() => callback(...args), delay);
+            timeoutId = window.setTimeout(() => {
+              timeoutId = undefined;
+              const argsToFlush = lastArgs;
+              lastArgs = undefined;
+              if (argsToFlush) {
+                callback(...argsToFlush);
+              }
+            }, delay);
           };
+
+          debounced.cancel = () => {
+            window.clearTimeout(timeoutId);
+            timeoutId = undefined;
+            lastArgs = undefined;
+          };
+
+          debounced.flush = () => {
+            if (timeoutId === undefined || !lastArgs) {
+              return;
+            }
+
+            window.clearTimeout(timeoutId);
+            timeoutId = undefined;
+            const argsToFlush = lastArgs;
+            lastArgs = undefined;
+            callback(...argsToFlush);
+          };
+
+          return debounced;
         }
 
         /**
