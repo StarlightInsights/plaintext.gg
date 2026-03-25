@@ -46,6 +46,7 @@
         --text-secondary: oklch(0.683 0 89.88);
         --text-placeholder: oklch(0.8452 0 89.88);
         --overlay: oklch(0 0 0 / 0.4);
+        --ui-transition: 180ms ease;
       }
 
       :root[data-theme="dark"] {
@@ -77,6 +78,9 @@
         color: var(--text-primary);
         font-family: var(--font-family-main);
         font-weight: 400;
+        transition:
+          background-color var(--ui-transition),
+          color var(--ui-transition);
       }
 
       button,
@@ -98,6 +102,10 @@
         background: var(--bg);
         font-family: var(--font-family-header);
         font-weight: 400;
+        transition:
+          background-color var(--ui-transition),
+          border-color var(--ui-transition),
+          color var(--ui-transition);
       }
 
       .controls {
@@ -120,6 +128,18 @@
         cursor: pointer;
         text-decoration: none;
         transition: color 120ms ease;
+      }
+
+      .control-button-label {
+        display: inline-block;
+      }
+
+      .control-button.is-feedback {
+        color: var(--text-primary);
+      }
+
+      .control-button.is-feedback .control-button-label {
+        animation: copy-pulse 480ms ease;
       }
 
       .control-button:link,
@@ -158,10 +178,19 @@
         line-height: 1.65;
         outline: none;
         caret-color: var(--text-primary);
+        transition:
+          color var(--ui-transition),
+          caret-color var(--ui-transition),
+          background-color var(--ui-transition);
+      }
+
+      .editor.is-copy-feedback {
+        animation: editor-copy-pulse 380ms ease;
       }
 
       .editor::placeholder {
         color: var(--text-placeholder);
+        transition: color var(--ui-transition);
       }
 
       .modal {
@@ -170,10 +199,19 @@
         padding: 0;
         color: var(--text-primary);
         background: var(--panel-bg);
+        transition:
+          background-color var(--ui-transition),
+          border-color var(--ui-transition),
+          color var(--ui-transition);
+      }
+
+      .modal[open] {
+        animation: dialog-in 180ms ease;
       }
 
       .modal::backdrop {
         background: var(--overlay);
+        transition: background-color var(--ui-transition);
       }
 
       .dialog-panel {
@@ -204,6 +242,7 @@
         color: var(--text-secondary);
         padding: 0;
         cursor: pointer;
+        transition: color var(--ui-transition);
       }
 
       .dialog-copy {
@@ -224,7 +263,7 @@
       .dialog-copy a:visited {
         color: oklch(0.54 0 89.88);
         text-decoration: underline;
-        transition: color 120ms ease;
+        transition: color var(--ui-transition);
       }
 
       .dialog-copy a:hover,
@@ -236,6 +275,55 @@
       :root[data-theme="dark"] .dialog-copy a,
       :root[data-theme="dark"] .dialog-copy a:visited {
         color: var(--text-secondary);
+      }
+
+      @keyframes dialog-in {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes copy-pulse {
+        0% {
+          opacity: 1;
+        }
+
+        35% {
+          opacity: 0.14;
+        }
+
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes editor-copy-pulse {
+        0% {
+          opacity: 1;
+        }
+
+        35% {
+          opacity: 0.58;
+        }
+
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
       }
 
       @media (max-width: 640px) {
@@ -286,7 +374,9 @@
           </button>
         </span>
         <button class="control-button" type="button" id="save-button">save</button>
-        <button class="control-button" type="button" id="copy-button">copy</button>
+        <button class="control-button" type="button" id="copy-button">
+          <span class="control-button-label">copy</span>
+        </button>
         <button
           class="control-button"
           type="button"
@@ -364,7 +454,7 @@ is not needing one at all.</p>
         const FONT_STEP = 2;
         const MIN_FONT_SIZE = 10;
         const MAX_FONT_SIZE = 34;
-        const COPY_FEEDBACK_DURATION_MS = 1200;
+        const COPY_FEEDBACK_DURATION_MS = 400;
 
         /** @typedef {"light" | "dark"} Theme */
 
@@ -488,15 +578,27 @@ is not needing one at all.</p>
         /**
          * Show temporary feedback in the copy button label.
          *
-         * @param {string} label
          * @returns {void}
          */
-        function showCopyFeedback(label) {
+        function showCopyFeedback() {
           window.clearTimeout(copyFeedbackTimeoutId);
-          copyButton.textContent = label;
+          copyButton.classList.remove("is-feedback");
+          void copyButton.offsetWidth;
+          copyButton.classList.add("is-feedback");
           copyFeedbackTimeoutId = window.setTimeout(() => {
-            copyButton.textContent = "copy";
+            copyButton.classList.remove("is-feedback");
           }, COPY_FEEDBACK_DURATION_MS);
+        }
+
+        /**
+         * Show a brief pulse on the editor after a successful copy.
+         *
+         * @returns {void}
+         */
+        function pulseEditorCopyFeedback() {
+          editor.classList.remove("is-copy-feedback");
+          void editor.offsetWidth;
+          editor.classList.add("is-copy-feedback");
         }
 
         /**
@@ -639,9 +741,10 @@ is not needing one at all.</p>
         copyButton.addEventListener("click", async () => {
           try {
             await copyPlainText(editor.value);
-            showCopyFeedback("copied");
+            showCopyFeedback();
+            pulseEditorCopyFeedback();
           } catch {
-            showCopyFeedback("copy failed");
+            showCopyFeedback();
           }
         });
 
