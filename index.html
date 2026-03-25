@@ -838,6 +838,7 @@
           }
 
           if (event.key === STORAGE_KEYS.text) {
+            persistText.cancel();
             updateEditorText(event.newValue ?? "");
             return;
           }
@@ -851,6 +852,12 @@
             const nextFontSize = Number(event.newValue);
             updateFontSize(Number.isFinite(nextFontSize) ? nextFontSize : DEFAULT_FONT_SIZE, false);
           }
+        });
+
+        window.addEventListener("pagehide", () => {
+          state.text = editor.value;
+          persistText(state.text);
+          persistText.flush();
         });
 
         themeButton.addEventListener("click", () => {
