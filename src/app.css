@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "CommitMono-300-Regular";
+  src: url("/fonts/CommitMono-300-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono-250-Regular";
+  src: url("/fonts/CommitMono-250-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono-200-Regular";
+  src: url("/fonts/CommitMono-200-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+:root {
+  --font-family-main: "CommitMono-300-Regular", ui-monospace, "SFMono-Regular", "SF Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
+  --font-family-header: "CommitMono-250-Regular", ui-monospace, "SFMono-Regular", "SF Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
+  --font-family-dialog: "CommitMono-200-Regular", ui-monospace, "SFMono-Regular", "SF Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
+  --font-family-title: "CommitMono-300-Regular", ui-monospace, "SFMono-Regular", "SF Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  --bg: oklch(1 0 89.88);
+  --panel-bg: oklch(1 0 89.88);
+  --border: oklch(0.9219 0 89.88);
+  --panel-border: oklch(0.9219 0 89.88);
+  --text-primary: oklch(0.2178 0 89.88);
+  --text-secondary: oklch(0.683 0 89.88);
+  --text-placeholder: oklch(0.8452 0 89.88);
+  --feedback-error: oklch(0.58 0.18 23);
+  --overlay: oklch(0 0 0 / 0.4);
+  --ui-transition: 180ms ease;
+}
+
+.app-shell[data-theme="dark"] {
+  --bg: oklch(0.2178 0 89.88);
+  --panel-bg: oklch(0.252 0 89.88);
+  --border: oklch(0.285 0 89.88);
+  --panel-border: oklch(0.3211 0 89.88);
+  --text-primary: oklch(0.9067 0 89.88);
+  --text-secondary: oklch(0.5103 0 89.88);
+  --text-placeholder: oklch(0.3867 0 89.88);
+  --feedback-error: oklch(0.72 0.17 23);
+  --overlay: oklch(0 0 0 / 0.667);
+}
+
+.plain-dialog[open] {
+  animation: dialog-in 180ms ease;
+}
+
+.plain-dialog::backdrop {
+  background: var(--overlay);
+  transition: background-color var(--ui-transition);
+}
+
+.dialog-copy a,
+.dialog-copy a:visited {
+  color: oklch(0.54 0 89.88);
+  transition: color var(--ui-transition);
+}
+
+.dialog-copy a:hover,
+.dialog-copy a:focus-visible {
+  color: var(--text-primary);
+  outline: none;
+}
+
+.app-shell[data-theme="dark"] .dialog-copy a,
+.app-shell[data-theme="dark"] .dialog-copy a:visited {
+  color: var(--text-secondary);
+}
+
+.copy-feedback-success span,
+.copy-feedback-error span {
+  animation: copy-pulse 480ms ease;
+}
+
+.editor-copy-feedback {
+  animation: editor-copy-pulse 380ms ease;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes copy-pulse {
+  0% {
+    opacity: 1;
+  }
+
+  35% {
+    opacity: 0.14;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes editor-copy-pulse {
+  0% {
+    opacity: 1;
+  }
+
+  35% {
+    opacity: 0.58;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
