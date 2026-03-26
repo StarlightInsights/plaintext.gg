@@ -2,7 +2,7 @@
 
 Sometimes you just want plain text.
 
-`plaintext.gg` is a small, static, open-source plain text editor designed to stay out of the way. It runs entirely in the browser, saves locally with `localStorage`, and avoids accounts, backends, analytics, and formatting features.
+`plaintext.gg` is a small, static, open-source plain text editor designed to stay out of the way. It runs entirely in the browser, saves text locally with IndexedDB, keeps preferences in `localStorage`, and avoids accounts, backends, analytics, and formatting features.
 
 ## What It Does
 
@@ -10,13 +10,15 @@ Sometimes you just want plain text.
 - Saves automatically to the browser with a short debounce
 - Lets you copy text, download it as `plaintext.txt`, and adjust font size
 - Supports light and dark themes
-- Syncs text, theme, and font size across open windows through the browser `storage` event
+- Syncs text across open tabs with `BroadcastChannel`
+- Syncs theme and font size across open windows through the browser `storage` event
 - Uses self-hosted Commit Mono webfonts
 
 ## Project Structure
 
 - `src/routes/+page.svelte`: the application page
 - `src/lib/editor.ts`: small shared editor utilities covered by tests
+- `src/lib/text-persistence.ts`: the IndexedDB wrapper for the current text document
 - `src/app.css`: Tailwind import plus the app's global styles and local font faces
 - `static/`: static assets served with the site, including the favicon, license file, and the full bundled Commit Mono font family
 - `.github/workflows/ci.yml`: CI plus Bunny Storage deployment on `main`
@@ -58,7 +60,7 @@ Required GitHub Actions secrets:
 
 ## Privacy
 
-`plaintext.gg` stores text, theme, and font size in the browser's `localStorage`.
+`plaintext.gg` stores text in the browser's IndexedDB and keeps theme and font size in `localStorage`.
 
 - No accounts
 - No analytics
@@ -74,7 +76,7 @@ This project is open source. Small, direct contributions are welcome, especially
 - accessibility
 - browser behavior
 - typography and visual polish
-- edge-case handling for local persistence and multi-window use
+- edge-case handling for local persistence and multi-tab use
 
 If you make changes, keep the product intent intact: minimal UI, plain text first, and as little interference as possible.
 

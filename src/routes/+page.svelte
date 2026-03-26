@@ -1,22 +1,34 @@
 <script lang="ts">
-	import { asset } from '$app/paths';
 	import { browser } from '$app/environment';
+	import { asset } from '$app/paths';
 	import { tick } from 'svelte';
 	import {
 		clampFontSize,
+		comparePersistedTextVersions,
 		COPY_FEEDBACK_DURATION_MS,
 		DEFAULT_FONT_SIZE,
 		FONT_STEP,
+		isPersistedTextVersionNewer,
 		MAX_FONT_SIZE,
 		MIN_FONT_SIZE,
 		normalizeTheme,
 		parseStoredFontSize,
+		type PersistedTextVersion,
 		STORAGE_KEYS,
-		TEXT_PERSIST_DELAY_MS
+		TEXT_PERSIST_DELAY_MS,
+		TEXT_SYNC_CHANNEL_NAME
 	} from '$lib/editor';
+	import {
+		createPersistedTextRecord,
+		readPersistedTextRecord,
+		writePersistedTextRecord
+	} from '$lib/text-persistence';
 
 	type DialogId = 'why' | 'privacy';
 	type CopyFeedback = 'idle' | 'success' | 'error';
+	type TextSyncMessage = PersistedTextVersion & {
+		type: 'text-updated';
+	};
 
 	let editor = $state<HTMLTextAreaElement | null>(null);
 	let whyDialog = $state<HTMLDialogElement | null>(null);
@@ -28,9 +40,15 @@
 	let fontSize = $state(DEFAULT_FONT_SIZE);
 	let textPersistTimeout = 0;
 	let copyFeedbackTimeout = 0;
+	let persistedTextVersion: PersistedTextVersion | null = null;
+	let broadcastChannel: BroadcastChannel | null = null;
+	let persistTextChain = Promise.resolve();
+	let hasPendingLocalTextEdits = false;
+	let localSaveSequence = 0;
 
 	const homeHref = '/';
 	const fontLicenseHref = asset('/OFL.txt');
+	const tabId = browser ? createTabId() : 'server';
 	const controlButtonClass =
 		'inline-flex cursor-pointer items-center justify-center bg-transparent p-0 text-[oklch(0.49_0_89.88)] no-underline touch-manipulation transition-colors duration-150 ease-out hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] focus-visible:outline-none disabled:cursor-default disabled:text-[var(--text-placeholder)]';
 	const dialogButtonClass =
@@ -40,7 +58,6 @@
 	let canDecreaseFont = $derived(fontSize > MIN_FONT_SIZE);
 
 	if (browser) {
-		text = loadStoredValue(STORAGE_KEYS.text) ?? '';
 		theme = normalizeTheme(loadStoredValue(STORAGE_KEYS.theme));
 
 		const storedFontSize = parseStoredFontSize(loadStoredValue(STORAGE_KEYS.fontSize));
@@ -79,14 +96,45 @@
 	});
 
 	$effect(() => {
+		if (!browser) {
+			return;
+		}
+
+		let isCancelled = false;
+
+		if (typeof BroadcastChannel !== 'undefined') {
+			broadcastChannel = new BroadcastChannel(TEXT_SYNC_CHANNEL_NAME);
+			broadcastChannel.onmessage = (event) => {
+				void handleTextBroadcast(event);
+			};
+		}
+
+		void initializeTextPersistence(() => isCancelled);
+
 		return () => {
-			flushTextPersistence();
+			isCancelled = true;
+			broadcastChannel?.close();
+			broadcastChannel = null;
+		};
+	});
+
+	$effect(() => {
+		return () => {
+			void flushTextPersistence();
 
 			if (copyFeedbackTimeout) {
 				window.clearTimeout(copyFeedbackTimeout);
 			}
 		};
 	});
+
+	function createTabId(): string {
+		if (typeof window.crypto?.randomUUID === 'function') {
+			return window.crypto.randomUUID();
+		}
+
+		return `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	}
 
 	function loadStoredValue(key: string): string | null {
 		try {
@@ -113,6 +161,57 @@
 		textPersistTimeout = 0;
 	}
 
+	function toPersistedTextVersion(version: PersistedTextVersion): PersistedTextVersion {
+		return {
+			updatedAt: version.updatedAt,
+			sourceTabId: version.sourceTabId,
+			saveSequence: version.saveSequence
+		};
+	}
+
+	function createTextSyncMessage(version: PersistedTextVersion): TextSyncMessage {
+		return {
+			type: 'text-updated',
+			updatedAt: version.updatedAt,
+			sourceTabId: version.sourceTabId,
+			saveSequence: version.saveSequence
+		};
+	}
+
+	function parseTextSyncMessage(value: unknown): TextSyncMessage | null {
+		if (!value || typeof value !== 'object') {
+			return null;
+		}
+
+		const candidate = value as Partial<TextSyncMessage>;
+		if (candidate.type !== 'text-updated') {
+			return null;
+		}
+
+		if (
+			typeof candidate.updatedAt !== 'number' ||
+			typeof candidate.sourceTabId !== 'string' ||
+			typeof candidate.saveSequence !== 'number'
+		) {
+			return null;
+		}
+
+		return {
+			type: candidate.type,
+			updatedAt: candidate.updatedAt,
+			sourceTabId: candidate.sourceTabId,
+			saveSequence: candidate.saveSequence
+		};
+	}
+
+	function createNextTextVersion(): PersistedTextVersion {
+		return {
+			updatedAt: Date.now(),
+			sourceTabId: tabId,
+			saveSequence: ++localSaveSequence
+		};
+	}
+
 	function scheduleTextPersistence(nextText: string): void {
 		if (!browser) {
 			return;
@@ -121,17 +220,17 @@
 		clearTextPersistence();
 		textPersistTimeout = window.setTimeout(() => {
 			textPersistTimeout = 0;
-			saveStoredValue(STORAGE_KEYS.text, nextText);
+			void persistText(nextText);
 		}, TEXT_PERSIST_DELAY_MS);
 	}
 
-	function flushTextPersistence(): void {
+	async function flushTextPersistence(): Promise<void> {
 		if (!browser) {
 			return;
 		}
 
 		clearTextPersistence();
-		saveStoredValue(STORAGE_KEYS.text, text);
+		await persistText(text);
 	}
 
 	function setFontSize(nextFontSize: number, shouldPersist = true): void {
@@ -143,7 +242,13 @@
 		}
 	}
 
-	async function updateTextFromStorage(nextText: string): Promise<void> {
+	async function updateTextFromPersistence(
+		nextText: string,
+		nextVersion: PersistedTextVersion
+	): Promise<void> {
+		hasPendingLocalTextEdits = false;
+		persistedTextVersion = nextVersion;
+
 		if (!editor || editor.value === nextText) {
 			text = nextText;
 			return;
@@ -164,6 +269,109 @@
 				selectionDirection
 			);
 		}
+	}
+
+	async function initializeTextPersistence(isCancelled: () => boolean): Promise<void> {
+		try {
+			const record = await readPersistedTextRecord();
+			if (!record || isCancelled()) {
+				return;
+			}
+
+			const nextVersion = toPersistedTextVersion(record);
+			if (hasPendingLocalTextEdits) {
+				if (isPersistedTextVersionNewer(nextVersion, persistedTextVersion)) {
+					persistedTextVersion = nextVersion;
+				}
+
+				return;
+			}
+
+			await updateTextFromPersistence(record.text, nextVersion);
+		} catch {
+			// IndexedDB can be unavailable in restricted contexts.
+		}
+	}
+
+	function broadcastTextUpdate(version: PersistedTextVersion): void {
+		if (!broadcastChannel) {
+			return;
+		}
+
+		broadcastChannel.postMessage(createTextSyncMessage(version));
+	}
+
+	async function persistText(nextText: string): Promise<void> {
+		if (!browser || !hasPendingLocalTextEdits) {
+			return;
+		}
+
+		const nextVersion = createNextTextVersion();
+		const nextRecord = createPersistedTextRecord(nextText, nextVersion);
+
+		persistTextChain = persistTextChain
+			.catch(() => undefined)
+			.then(async () => {
+				const writtenRecord = await writePersistedTextRecord(nextRecord);
+				const writtenVersion = toPersistedTextVersion(writtenRecord);
+
+				persistedTextVersion = writtenVersion;
+
+				if (text === writtenRecord.text) {
+					hasPendingLocalTextEdits = false;
+				}
+
+				broadcastTextUpdate(writtenVersion);
+			});
+
+		try {
+			await persistTextChain;
+		} catch {
+			// Keep the editor usable even if persistence fails.
+		}
+	}
+
+	async function refreshTextFromPersistence(
+		minimumVersion: PersistedTextVersion | null = null
+	): Promise<void> {
+		try {
+			const record = await readPersistedTextRecord();
+			if (!record) {
+				return;
+			}
+
+			const nextVersion = toPersistedTextVersion(record);
+			if (minimumVersion && comparePersistedTextVersions(nextVersion, minimumVersion) < 0) {
+				return;
+			}
+
+			if (!isPersistedTextVersionNewer(nextVersion, persistedTextVersion)) {
+				return;
+			}
+
+			if (hasPendingLocalTextEdits) {
+				return;
+			}
+
+			clearTextPersistence();
+			await updateTextFromPersistence(record.text, nextVersion);
+		} catch {
+			// Ignore transient IndexedDB read failures.
+		}
+	}
+
+	async function handleTextBroadcast(event: MessageEvent<unknown>): Promise<void> {
+		const message = parseTextSyncMessage(event.data);
+		if (!message || message.sourceTabId === tabId) {
+			return;
+		}
+
+		const nextVersion = toPersistedTextVersion(message);
+		if (!isPersistedTextVersionNewer(nextVersion, persistedTextVersion)) {
+			return;
+		}
+
+		await refreshTextFromPersistence(nextVersion);
 	}
 
 	function clearCopyFeedback(): void {
@@ -248,17 +456,12 @@
 	function handleInput(event: Event): void {
 		const target = event.currentTarget as HTMLTextAreaElement;
 		text = target.value;
+		hasPendingLocalTextEdits = true;
 		scheduleTextPersistence(text);
 	}
 
 	async function handleStorage(event: StorageEvent): Promise<void> {
 		if (event.storageArea !== window.localStorage || !event.key) {
-			return;
-		}
-
-		if (event.key === STORAGE_KEYS.text) {
-			clearTextPersistence();
-			await updateTextFromStorage(event.newValue ?? '');
 			return;
 		}
 
@@ -275,8 +478,15 @@
 
 	function handleVisibilityChange(): void {
 		if (document.visibilityState === 'hidden') {
-			flushTextPersistence();
+			void flushTextPersistence();
+			return;
 		}
+
+		void refreshTextFromPersistence();
+	}
+
+	function handleWindowFocus(): void {
+		void refreshTextFromPersistence();
 	}
 
 	function toggleTheme(): void {
@@ -326,7 +536,7 @@
 	/>
 	<meta
 		name="keywords"
-		content="plain text editor, distraction free writing, local storage notes, plaintext.gg"
+		content="plain text editor, distraction free writing, browser notes, plaintext.gg"
 	/>
 	<meta name="author" content="Starlight Insights" />
 	<meta property="og:title" content="plaintext.gg" />
@@ -343,7 +553,11 @@
 	/>
 </svelte:head>
 
-<svelte:window onstorage={handleStorage} onpagehide={flushTextPersistence} />
+<svelte:window
+	onfocus={handleWindowFocus}
+	onstorage={handleStorage}
+	onpagehide={flushTextPersistence}
+/>
 <svelte:document onvisibilitychange={handleVisibilityChange} />
 
 <div
@@ -502,8 +716,9 @@
 				class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
 				style="font-family: var(--font-family-dialog);"
 			>
-				<p class="m-0">plaintext.gg stores everything in your browser&apos;s localStorage.</p>
-				<p class="m-0">no cookies. no analytics. no tracking. no accounts. no server. no database.</p>
+				<p class="m-0">plaintext.gg stores text in your browser&apos;s IndexedDB.</p>
+				<p class="m-0">theme and font size stay in your browser&apos;s localStorage.</p>
+				<p class="m-0">no cookies. no analytics. no tracking. no accounts. no server. no cloud database.</p>
 				<p class="m-0">your text never leaves your device.</p>
 				<p class="m-0">
 					all fonts are bundled locally with the site. the bundled font license is available at
