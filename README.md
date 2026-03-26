@@ -16,10 +16,10 @@ Sometimes you just want plain text.
 ## Project Structure
 
 - `src/routes/+page.svelte`: the application page
-- `src/lib/editor.js`: small shared editor utilities covered by tests
+- `src/lib/editor.ts`: small shared editor utilities covered by tests
 - `src/app.css`: Tailwind import plus the app's global styles and local font faces
 - `static/`: static assets served with the site, including the favicon, license file, and the full bundled Commit Mono font family
-- `.github/workflows/ci.yml`: CI for tests and checks
+- `.github/workflows/ci.yml`: CI plus Bunny Storage deployment on `main`
 
 ## Local Development
 
@@ -43,7 +43,18 @@ pnpm dev
 
 This repo is intended to be deployed as a static site. The SvelteKit build uses `@sveltejs/adapter-static`, so the generated output in `build/` can be deployed to any static host.
 
-Deploy the contents of `build/`.
+On pushes to `main`, GitHub Actions now:
+
+- runs the test and check pipeline
+- rebuilds the static site
+- deletes the current contents of the configured Bunny Storage zone root
+- uploads the contents of `build/`
+
+Required GitHub Actions secrets:
+
+- `BUNNY_STORAGE_ENDPOINT`: the storage hostname for your zone region, for example `storage.bunnycdn.com` or `uk.storage.bunnycdn.com`
+- `BUNNY_STORAGE_ZONE`: your Bunny Storage zone name
+- `BUNNY_STORAGE_PASSWORD`: your storage zone password from the Bunny dashboard's FTP & API Access section
 
 ## Privacy
 
@@ -70,4 +81,4 @@ If you make changes, keep the product intent intact: minimal UI, plain text firs
 ## Licenses
 
 - Project license: see [LICENSE](./LICENSE)
-- Font license: see [OFL.txt](./OFL.txt)
+- Font license: see [OFL.txt](./static/OFL.txt)
