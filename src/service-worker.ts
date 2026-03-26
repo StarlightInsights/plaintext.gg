@@ -7,14 +7,15 @@ import { base, build, files, prerendered, version } from '$service-worker';
 
 const sw = globalThis as unknown as ServiceWorkerGlobalScope;
 const CACHE = `cache-${version}`;
-const ASSETS = [...build, ...files, ...prerendered];
 const SHELL_URL = `${base}/`;
+const PRECACHE_ASSETS = [...build, ...files];
+const OFFLINE_FALLBACKS = prerendered.includes(SHELL_URL) ? [SHELL_URL] : [];
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
 		(async () => {
 			const cache = await caches.open(CACHE);
-			await cache.addAll(ASSETS);
+			await cache.addAll([...PRECACHE_ASSETS, ...OFFLINE_FALLBACKS]);
 			await sw.skipWaiting();
 		})()
 	);
@@ -42,35 +43,28 @@ sw.addEventListener('fetch', (event) => {
 	event.respondWith(
 		(async () => {
 			const url = new URL(event.request.url);
-			const cache = await caches.open(CACHE);
+			const isNavigationRequest =
+				event.request.mode === 'navigate' ||
+				(event.request.destination === 'document' &&
+					url.origin === sw.location.origin);
 
-			if (ASSETS.includes(url.pathname)) {
+			if (url.origin !== sw.location.origin) {
+				return fetch(event.request);
+			}
+
+			if (PRECACHE_ASSETS.includes(url.pathname)) {
+				const cache = await caches.open(CACHE);
 				const cached = await cache.match(url.pathname);
 				if (cached) {
 					return cached;
 				}
 			}
 
-			const isNavigationRequest =
-				event.request.mode === 'navigate' ||
-				(event.request.destination === 'document' &&
-					url.origin === sw.location.origin);
-
 			try {
-				const response = await fetch(event.request);
-
-				if (response instanceof Response && response.ok && url.origin === sw.location.origin) {
-					await cache.put(event.request, response.clone());
-				}
-
-				return response;
+				return await fetch(event.request);
 			} catch (error) {
-				const cached = await cache.match(event.request);
-				if (cached) {
-					return cached;
-				}
-
 				if (isNavigationRequest) {
+					const cache = await caches.open(CACHE);
 					const shell = await cache.match(SHELL_URL);
 					if (shell) {
 						return shell;

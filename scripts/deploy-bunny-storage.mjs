@@ -23,7 +23,9 @@ for (const [name, value] of [
 
 const baseSegments = [storageZone, prefix].filter(Boolean);
 
-await clearRemoteRoot();
+console.log(
+	'Uploading build output without deleting existing files first to keep older hashed assets available during rollout.'
+);
 await uploadDirectory(sourceDir);
 await purgePullZoneCache();
 
@@ -55,7 +57,7 @@ function toRemoteUrl(remotePath = '', isDirectory = false) {
 async function storageRequest(
 	method,
 	remotePath,
-	{ isDirectory = false, headers = {}, body, ignoreNotFound = false } = {}
+	{ isDirectory = false, headers = {}, body } = {}
 ) {
 	const response = await fetch(toRemoteUrl(remotePath, isDirectory), {
 		method,
@@ -65,10 +67,6 @@ async function storageRequest(
 		},
 		body
 	});
-
-	if (ignoreNotFound && response.status === 404) {
-		return response;
-	}
 
 	if (!response.ok) {
 		const text = await response.text();
@@ -96,32 +94,6 @@ async function purgePullZoneCache() {
 	}
 
 	console.log('Bunny Pull Zone cache purged.');
-}
-
-async function listDirectory(remotePath = '') {
-	const response = await storageRequest('GET', remotePath, { isDirectory: true });
-	return response.json();
-}
-
-async function clearRemoteRoot() {
-	console.log(`Clearing Bunny Storage path "${prefix || '/'}"...`);
-	await clearRemoteDirectory();
-}
-
-async function clearRemoteDirectory(remotePath = '') {
-	const items = await listDirectory(remotePath);
-	for (const item of items) {
-		const childPath = joinRemotePath(remotePath, item.ObjectName);
-
-		if (item.IsDirectory) {
-			console.log(`Descending into directory: ${childPath}`);
-			await clearRemoteDirectory(childPath);
-			continue;
-		}
-
-		console.log(`Deleting file: ${childPath}`);
-		await storageRequest('DELETE', childPath, { ignoreNotFound: true });
-	}
 }
 
 async function uploadDirectory(rootDir) {
