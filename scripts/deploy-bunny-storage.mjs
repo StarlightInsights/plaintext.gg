@@ -47,7 +47,11 @@ function toRemoteUrl(remotePath = '', isDirectory = false) {
 	return `https://${endpoint}/${fullPath}${suffix}`;
 }
 
-async function storageRequest(method, remotePath, { isDirectory = false, headers = {}, body } = {}) {
+async function storageRequest(
+	method,
+	remotePath,
+	{ isDirectory = false, headers = {}, body, ignoreNotFound = false } = {}
+) {
 	const response = await fetch(toRemoteUrl(remotePath, isDirectory), {
 		method,
 		headers: {
@@ -56,6 +60,10 @@ async function storageRequest(method, remotePath, { isDirectory = false, headers
 		},
 		body
 	});
+
+	if (ignoreNotFound && response.status === 404) {
+		return response;
+	}
 
 	if (!response.ok) {
 		const text = await response.text();
@@ -72,12 +80,22 @@ async function listDirectory(remotePath = '') {
 
 async function clearRemoteRoot() {
 	console.log(`Clearing Bunny Storage path "${prefix || '/'}"...`);
+	await clearRemoteDirectory();
+}
 
-	const items = await listDirectory();
+async function clearRemoteDirectory(remotePath = '') {
+	const items = await listDirectory(remotePath);
 	for (const item of items) {
-		const remotePath = joinRemotePath(item.ObjectName);
-		console.log(`Deleting ${item.IsDirectory ? 'directory' : 'file'}: ${remotePath}`);
-		await storageRequest('DELETE', remotePath);
+		const childPath = joinRemotePath(remotePath, item.ObjectName);
+
+		if (item.IsDirectory) {
+			console.log(`Descending into directory: ${childPath}`);
+			await clearRemoteDirectory(childPath);
+			continue;
+		}
+
+		console.log(`Deleting file: ${childPath}`);
+		await storageRequest('DELETE', childPath, { ignoreNotFound: true });
 	}
 }
 
