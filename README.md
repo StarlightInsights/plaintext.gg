@@ -51,9 +51,12 @@ On pushes to `main`, GitHub Actions now:
 - rebuilds the static site
 - deletes the current contents of the configured Bunny Storage zone root
 - uploads the contents of `build/`
+- purges the configured Bunny Pull Zone cache so the CDN stops serving stale assets
 
 Required GitHub Actions secrets:
 
+- `BUNNY_API_KEY`: your Bunny account API key used for Core Platform API calls such as cache purges
+- `BUNNY_PULL_ZONE_ID`: the numeric Pull Zone ID for the CDN zone serving the site
 - `BUNNY_STORAGE_ENDPOINT`: the storage hostname for your zone region, for example `storage.bunnycdn.com` or `uk.storage.bunnycdn.com`
 - `BUNNY_STORAGE_ZONE`: your Bunny Storage zone name
 - `BUNNY_STORAGE_PASSWORD`: your storage zone password from the Bunny dashboard's FTP & API Access section

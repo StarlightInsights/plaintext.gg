@@ -3,14 +3,18 @@ import path from 'node:path';
 
 const endpoint = process.env.BUNNY_STORAGE_ENDPOINT;
 const storageZone = process.env.BUNNY_STORAGE_ZONE;
-const accessKey = process.env.BUNNY_STORAGE_PASSWORD;
+const storageAccessKey = process.env.BUNNY_STORAGE_PASSWORD;
 const sourceDir = process.env.BUNNY_SOURCE_DIR ?? 'build';
 const prefix = normalizeRemotePath(process.env.BUNNY_STORAGE_PREFIX ?? '');
+const pullZoneId = process.env.BUNNY_PULL_ZONE_ID;
+const apiKey = process.env.BUNNY_API_KEY;
 
 for (const [name, value] of [
 	['BUNNY_STORAGE_ENDPOINT', endpoint],
 	['BUNNY_STORAGE_ZONE', storageZone],
-	['BUNNY_STORAGE_PASSWORD', accessKey]
+	['BUNNY_STORAGE_PASSWORD', storageAccessKey],
+	['BUNNY_PULL_ZONE_ID', pullZoneId],
+	['BUNNY_API_KEY', apiKey]
 ]) {
 	if (!value) {
 		throw new Error(`Missing required environment variable: ${name}`);
@@ -21,6 +25,7 @@ const baseSegments = [storageZone, prefix].filter(Boolean);
 
 await clearRemoteRoot();
 await uploadDirectory(sourceDir);
+await purgePullZoneCache();
 
 function normalizeRemotePath(value) {
 	return value.replace(/^\/+|\/+$/g, '');
@@ -55,7 +60,7 @@ async function storageRequest(
 	const response = await fetch(toRemoteUrl(remotePath, isDirectory), {
 		method,
 		headers: {
-			AccessKey: accessKey,
+			AccessKey: storageAccessKey,
 			...headers
 		},
 		body
@@ -71,6 +76,26 @@ async function storageRequest(
 	}
 
 	return response;
+}
+
+async function purgePullZoneCache() {
+	console.log(`Purging Bunny Pull Zone cache for zone ${pullZoneId}...`);
+
+	const response = await fetch(`https://api.bunny.net/pullzone/${encodeURIComponent(pullZoneId)}/purgeCache`, {
+		method: 'POST',
+		headers: {
+			AccessKey: apiKey,
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ CacheTag: null })
+	});
+
+	if (!response.ok) {
+		const text = await response.text();
+		throw new Error(`POST purgeCache failed with ${response.status}: ${text}`);
+	}
+
+	console.log('Bunny Pull Zone cache purged.');
 }
 
 async function listDirectory(remotePath = '') {
