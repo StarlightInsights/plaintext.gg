@@ -12,3 +12,12 @@ command = '''
 pnpm install
 pnpm dev
 '''
+
+[[actions]]
+name = "Check"
+icon = "test"
+command = '''
+pnpm install
+pnpm check
+pnpm test
+'''
