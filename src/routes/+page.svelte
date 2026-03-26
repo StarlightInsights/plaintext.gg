@@ -29,6 +29,10 @@
 	type TextSyncMessage = PersistedTextVersion & {
 		type: 'text-updated';
 	};
+	const THEME_COLORS = {
+		light: '#fffdf7',
+		dark: '#38342e'
+	} as const;
 
 	let editor = $state<HTMLTextAreaElement | null>(null);
 	let whyDialog = $state<HTMLDialogElement | null>(null);
@@ -36,7 +40,7 @@
 	let activeDialog = $state<DialogId | null>(null);
 	let copyFeedback = $state<CopyFeedback>('idle');
 	let text = $state('');
-	let theme = $state('light');
+	let theme = $state<'light' | 'dark'>('light');
 	let fontSize = $state(DEFAULT_FONT_SIZE);
 	let textPersistTimeout = 0;
 	let copyFeedbackTimeout = 0;
@@ -72,6 +76,10 @@
 		}
 
 		document.documentElement.style.colorScheme = theme;
+		const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+		if (themeColorMeta instanceof HTMLMetaElement) {
+			themeColorMeta.content = THEME_COLORS[theme];
+		}
 
 		return () => {
 			document.documentElement.style.removeProperty('color-scheme');
