@@ -74,6 +74,11 @@ textarea {
   --overlay: oklch(0 0 0 / 0.667);
 }
 
+.plain-dialog {
+  margin: auto;
+  max-height: calc(100dvh - 1rem);
+}
+
 .plain-dialog[open] {
   animation: dialog-in 180ms ease;
 }
