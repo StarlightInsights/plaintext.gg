@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -35,6 +35,9 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+      - name: Run markdown lint
+        run: pnpm run lint:md
 
       - name: Run checks
         run: pnpm run check

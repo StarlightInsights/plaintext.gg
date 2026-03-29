@@ -3,6 +3,10 @@ export const STORAGE_KEYS = {
 	fontSize: 'plaintext:fontSize'
 } as const;
 
+export const SESSION_STORAGE_KEYS = {
+	textDraft: 'plaintext:textDraft'
+} as const;
+
 export const DEFAULT_FONT_SIZE = 14;
 export const FONT_STEP = 2;
 export const MIN_FONT_SIZE = 10;

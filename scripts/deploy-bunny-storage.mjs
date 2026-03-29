@@ -23,8 +23,11 @@ for (const [name, value] of [
 
 const baseSegments = [storageZone, prefix].filter(Boolean);
 
-await clearRemoteRoot();
-await uploadDirectory(sourceDir);
+const localFiles = await walkFiles(sourceDir);
+const localPaths = new Set(localFiles.map((filePath) => path.relative(sourceDir, filePath).split(path.sep).join('/')));
+
+await uploadDirectory(sourceDir, localFiles);
+await deleteStaleRemoteFiles(localPaths);
 await purgePullZoneCache();
 
 function normalizeRemotePath(value) {
@@ -103,31 +106,45 @@ async function listDirectory(remotePath = '') {
 	return response.json();
 }
 
-async function clearRemoteRoot() {
-	console.log(`Clearing Bunny Storage path "${prefix || '/'}"...`);
-	await clearRemoteDirectory();
-}
-
-async function clearRemoteDirectory(remotePath = '') {
+async function listRemoteFiles(remotePath = '') {
 	const items = await listDirectory(remotePath);
+	const files = [];
+
 	for (const item of items) {
 		const childPath = joinRemotePath(remotePath, item.ObjectName);
 
 		if (item.IsDirectory) {
-			console.log(`Descending into directory: ${childPath}`);
-			await clearRemoteDirectory(childPath);
+			files.push(...(await listRemoteFiles(childPath)));
 			continue;
 		}
 
-		console.log(`Deleting file: ${childPath}`);
-		await storageRequest('DELETE', childPath, { ignoreNotFound: true });
+		files.push(childPath);
+	}
+
+	return files;
+}
+
+async function deleteStaleRemoteFiles(localPaths) {
+	console.log(`Deleting stale Bunny Storage files from "${prefix || '/'}"...`);
+
+	const remoteFiles = await listRemoteFiles();
+	for (const remotePath of remoteFiles) {
+		if (localPaths.has(remotePath)) {
+			continue;
+		}
+
+		console.log(`Deleting stale file: ${remotePath}`);
+		await storageRequest('DELETE', remotePath, { ignoreNotFound: true });
 	}
 }
 
-async function uploadDirectory(rootDir) {
-	const files = await walkFiles(rootDir);
+async function uploadDirectory(rootDir, files) {
+	const orderedFiles = [
+		...files.filter((filePath) => path.extname(filePath).toLowerCase() !== '.html'),
+		...files.filter((filePath) => path.extname(filePath).toLowerCase() === '.html')
+	];
 
-	for (const filePath of files) {
+	for (const filePath of orderedFiles) {
 		const relativePath = path.relative(rootDir, filePath).split(path.sep).join('/');
 		const body = await readFile(filePath);
 		const contentType = getContentType(relativePath);
@@ -145,6 +162,10 @@ async function walkFiles(directory) {
 	const files = [];
 
 	for (const entry of entries) {
+		if (entry.name === '.wiki') {
+			continue;
+		}
+
 		const fullPath = path.join(directory, entry.name);
 		if (entry.isDirectory()) {
 			files.push(...(await walkFiles(fullPath)));
