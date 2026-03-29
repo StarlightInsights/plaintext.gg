@@ -104,13 +104,8 @@ textarea {
   color: var(--text-secondary);
 }
 
-.copy-feedback-success span,
-.copy-feedback-error span {
-  animation: copy-pulse 480ms ease;
-}
-
 .editor-copy-feedback {
-  animation: editor-copy-pulse 380ms ease;
+  animation: editor-copy-pulse 620ms ease-in-out;
 }
 
 @keyframes dialog-in {
@@ -125,27 +120,13 @@ textarea {
   }
 }
 
-@keyframes copy-pulse {
-  0% {
-    opacity: 1;
-  }
-
-  35% {
-    opacity: 0.14;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
 @keyframes editor-copy-pulse {
   0% {
     opacity: 1;
   }
 
-  35% {
-    opacity: 0.58;
+  32% {
+    opacity: 0.24;
   }
 
   100% {
