@@ -42,6 +42,7 @@
 	let whyDialogOpen = $state(false);
 	let privacyDialogOpen = $state(false);
 	let thanksDialogOpen = $state(false);
+	let sisterSitesDialogOpen = $state(false);
 	let copyFeedback = $state<CopyFeedback>('idle');
 	let text = $state('');
 	let theme = $state<'light' | 'dark'>('light');
@@ -779,6 +780,23 @@
 	</svg>
 {/snippet}
 
+{#snippet sisterSitesIcon()}
+	<svg
+		aria-hidden="true"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 256 256"
+		class={toolbarIconClass}
+	>
+		<path
+			d="M188,96a20,20,0,0,0-20,20V60a20,20,0,0,0-40,0V44a20,20,0,0,0-40,0V76a20,20,0,0,0-40,0v76a80,80,0,0,0,160,0V116A20,20,0,0,0,188,96ZM128,200c-32,0-48-32-48-32s16-32,48-32,48,32,48,32S160,200,128,200Z"
+			opacity="0.2"
+		></path>
+		<path
+			d="M188,88a27.75,27.75,0,0,0-12,2.71V60a28,28,0,0,0-41.36-24.6A28,28,0,0,0,80,44v6.71A27.75,27.75,0,0,0,68,48,28,28,0,0,0,40,76v76a88,88,0,0,0,176,0V116A28,28,0,0,0,188,88Zm12,64a72,72,0,0,1-144,0V76a12,12,0,0,1,24,0v36a8,8,0,0,0,16,0V44a12,12,0,0,1,24,0v60a8,8,0,0,0,16,0V60a12,12,0,0,1,24,0v60a8,8,0,0,0,16,0v-4a12,12,0,0,1,24,0Zm-60,16a12,12,0,1,1-12-12A12,12,0,0,1,140,168Zm-12-40c-36.52,0-54.41,34.94-55.16,36.42a8,8,0,0,0,0,7.16C73.59,173.06,91.48,208,128,208s54.41-34.94,55.16-36.42a8,8,0,0,0,0-7.16C182.41,162.94,164.52,128,128,128Zm0,64c-20.63,0-33.8-16.52-38.7-24,4.9-7.48,18.07-24,38.7-24s33.81,16.53,38.7,24C161.8,175.48,148.63,192,128,192Z"
+		></path>
+	</svg>
+{/snippet}
+
 <div
 	data-theme={theme}
 	class="app-shell grid min-h-dvh grid-rows-[auto_1fr] bg-[var(--bg)] text-[var(--text-primary)] transition-[background-color,color] duration-180 ease-out"
@@ -918,6 +936,38 @@
 									Bits UI
 								</a>.
 							</p>
+						</Dialog.Description>
+					</div>
+				</Dialog.Content>
+			</Dialog.Root>
+			<Dialog.Root bind:open={sisterSitesDialogOpen}>
+				<Dialog.Trigger class={iconButtonClass} aria-label="Sister sites">
+					{@render sisterSitesIcon()}
+				</Dialog.Trigger>
+				<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
+				<Dialog.Content
+					class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
+				>
+					<div class="grid gap-5 p-4">
+						<div class="flex items-start justify-between gap-4">
+							<Dialog.Title
+								level={2}
+								class="m-0 text-base font-normal"
+								style="font-family: var(--font-family-title);"
+							>
+								sister sites
+							</Dialog.Title>
+							<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
+								x
+							</Dialog.Close>
+						</div>
+
+						<Dialog.Description
+							class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
+							style="font-family: var(--font-family-dialog);"
+						>
+							<p class="m-0">Fly By Starlight</p>
+							<p class="m-0">Starlight Calendar</p>
 						</Dialog.Description>
 					</div>
 				</Dialog.Content>
