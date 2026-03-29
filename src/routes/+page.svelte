@@ -41,6 +41,7 @@
 	let editor = $state<HTMLTextAreaElement | null>(null);
 	let whyDialogOpen = $state(false);
 	let privacyDialogOpen = $state(false);
+	let thanksDialogOpen = $state(false);
 	let copyFeedback = $state<CopyFeedback>('idle');
 	let text = $state('');
 	let theme = $state<'light' | 'dark'>('light');
@@ -761,6 +762,23 @@
 	</svg>
 {/snippet}
 
+{#snippet thanksIcon()}
+	<svg
+		aria-hidden="true"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 256 256"
+		class={toolbarIconClass}
+	>
+		<path
+			d="M229.66,197,197,229.66a8,8,0,0,1-11.31,0l-18.35-18.35,44-44,18.35,18.35A8,8,0,0,1,229.66,197ZM26.34,185.66a8,8,0,0,0,0,11.31L59,229.66a8,8,0,0,0,11.31,0l18.35-18.35-44-44Z"
+			opacity="0.2"
+		></path>
+		<path
+			d="M235.32,180l-36.24-36.25L162.62,23.46A21.76,21.76,0,0,0,128,12.93,21.76,21.76,0,0,0,93.38,23.46L56.92,143.76,20.68,180a16,16,0,0,0,0,22.62l32.69,32.69a16,16,0,0,0,22.63,0L124.28,187a40.68,40.68,0,0,0,3.72-4.29,40.68,40.68,0,0,0,3.72,4.29L180,235.32a16,16,0,0,0,22.63,0l32.69-32.69A16,16,0,0,0,235.32,180ZM64.68,224,32,191.32l12.69-12.69,32.69,32.69ZM120,158.75a23.85,23.85,0,0,1-7,17L88.68,200,56,167.32l13.65-13.66a8,8,0,0,0,2-3.34l37-122.22A5.78,5.78,0,0,1,120,29.78Zm23,17a23.85,23.85,0,0,1-7-17v-129a5.78,5.78,0,0,1,11.31-1.68l37,122.22a8,8,0,0,0,2,3.34l14.49,14.49-33.4,32ZM191.32,224l-12.56-12.57,33.39-32L224,191.32Z"
+		></path>
+	</svg>
+{/snippet}
+
 <div
 	data-theme={theme}
 	class="app-shell grid min-h-dvh grid-rows-[auto_1fr] bg-[var(--bg)] text-[var(--text-primary)] transition-[background-color,color] duration-180 ease-out"
@@ -847,16 +865,58 @@
 							</p>
 							<p class="m-0">your text never leaves your device.</p>
 							<p class="m-0">
-								fonts and icons are bundled with the site. thank you
+								fonts and icons are bundled with the site.
+							</p>
+							<p class="m-0">
+								we believe the best privacy policy is not needing one at all.
+							</p>
+						</Dialog.Description>
+					</div>
+				</Dialog.Content>
+			</Dialog.Root>
+			<Dialog.Root bind:open={thanksDialogOpen}>
+				<Dialog.Trigger class={iconButtonClass} aria-label="Thanks">
+					{@render thanksIcon()}
+				</Dialog.Trigger>
+				<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
+				<Dialog.Content
+					class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
+				>
+					<div class="grid gap-5 p-4">
+						<div class="flex items-start justify-between gap-4">
+							<Dialog.Title
+								level={2}
+								class="m-0 text-base font-normal"
+								style="font-family: var(--font-family-title);"
+							>
+								thanks
+							</Dialog.Title>
+							<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
+								x
+							</Dialog.Close>
+						</div>
+
+						<Dialog.Description
+							class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
+							style="font-family: var(--font-family-dialog);"
+						>
+							<p class="m-0">
+								thank you
 								<a href="https://commitmono.com/" target="_blank" rel="noreferrer">
 									Commit Mono
-								</a>. thank you
+								</a>.
+							</p>
+							<p class="m-0">
+								thank you
 								<a href="https://phosphoricons.com/" target="_blank" rel="noreferrer">
 									Phosphor
 								</a>.
 							</p>
 							<p class="m-0">
-								we believe the best privacy policy is not needing one at all.
+								thank you
+								<a href="https://bits-ui.com/" target="_blank" rel="noreferrer">
+									Bits UI
+								</a>.
 							</p>
 						</Dialog.Description>
 					</div>
