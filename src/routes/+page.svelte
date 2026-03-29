@@ -601,7 +601,7 @@
 	<title>plaintext.gg</title>
 	<meta
 		name="description"
-		content="plaintext.gg is a distraction-free plain text editor that saves locally in your browser."
+		content="the distraction-free writing tool that strips formatting and don't uses ai"
 	/>
 	<meta
 		name="keywords"
@@ -611,14 +611,14 @@
 	<meta property="og:title" content="plaintext.gg" />
 	<meta
 		property="og:description"
-		content="A distraction-free plain text editor that saves locally in your browser."
+		content="the distraction-free writing tool that strips formatting and don't uses ai"
 	/>
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content="plaintext.gg" />
 	<meta
 		name="twitter:description"
-		content="A distraction-free plain text editor that saves locally in your browser."
+		content="the distraction-free writing tool that strips formatting and don't uses ai"
 	/>
 </svelte:head>
 
@@ -665,13 +665,15 @@
 							style="font-family: var(--font-family-dialog);"
 						>
 							<p class="m-0">plaintext.gg is a distraction-free writing tool.</p>
-							<p class="m-0">no formatting. no folders. no sync conflicts.</p>
+							<p class="m-0">no ai. no formatting.</p>
 							<p class="m-0">just open the page and start typing.</p>
 							<p class="m-0">
 								your text is saved locally in your browser. nothing is sent to any
 								server. ever.
 							</p>
-							<p class="m-0">it is the simplest way to write.</p>
+							<p class="m-0">
+								it is the simplest way to write, take notes, and strip formatting.
+							</p>
 						</Dialog.Description>
 					</div>
 				</Dialog.Content>
@@ -710,9 +712,10 @@
 							</p>
 							<p class="m-0">your text never leaves your device.</p>
 							<p class="m-0">
-								all fonts are bundled locally with the site. the bundled font
-								license is available at
-								<a href={fontLicenseHref}>/OFL.txt</a>.
+								all fonts are bundled locally with the site. thank you
+								<a href="https://commitmono.com/" target="_blank" rel="noreferrer">
+									Commit Mono
+								</a>.
 							</p>
 							<p class="m-0">
 								we believe the best privacy policy is not needing one at all.
