@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 
 const staticAssetGlob = 'client/**/*.{js,css,ico,png,svg,webp,avif,woff,woff2,ttf,otf,eot,webmanifest}';
 const staticAssetMaxAgeSeconds = 60 * 60 * 24 * 365;
+const offlineFallbackPath = '/offline.html';
 
 export default defineConfig({
 	plugins: [
@@ -21,11 +22,16 @@ export default defineConfig({
 				navigateFallback: null,
 				// Prevent the SvelteKit PWA helper from re-adding prerendered HTML to the precache.
 				modifyURLPrefix: {},
-				globPatterns: [staticAssetGlob],
+				globPatterns: [staticAssetGlob, 'client/offline.html'],
 				runtimeCaching: [
 					{
 						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'NetworkOnly'
+						handler: 'NetworkOnly',
+						options: {
+							precacheFallback: {
+								fallbackURL: offlineFallbackPath
+							}
+						}
 					},
 					{
 						urlPattern: ({ request, sameOrigin }) =>
@@ -48,7 +54,7 @@ export default defineConfig({
 						}
 					}
 				]
-			}
-		})
-	]
+				}
+			})
+		]
 });

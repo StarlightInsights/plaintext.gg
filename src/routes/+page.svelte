@@ -14,6 +14,7 @@
 		MIN_FONT_SIZE,
 		normalizeTheme,
 		parseStoredFontSize,
+		SESSION_STORAGE_KEYS,
 		type PersistedTextVersion,
 		STORAGE_KEYS,
 		TEXT_PERSIST_DELAY_MS,
@@ -28,6 +29,10 @@
 	type CopyFeedback = 'idle' | 'success' | 'error';
 	type TextSyncMessage = PersistedTextVersion & {
 		type: 'text-updated';
+	};
+	type SessionTextDraft = {
+		text: string;
+		version: PersistedTextVersion;
 	};
 	const THEME_COLORS = {
 		light: '#fffdf7',
@@ -48,6 +53,7 @@
 	let persistTextChain = Promise.resolve();
 	let hasPendingLocalTextEdits = false;
 	let localSaveSequence = 0;
+	let pendingTextVersion: PersistedTextVersion | null = null;
 
 	const homeHref = '/';
 	const fontLicenseHref = asset('/OFL.txt');
@@ -139,6 +145,60 @@
 			window.localStorage.setItem(key, value);
 		} catch {
 			// Storage can fail in private or restricted contexts.
+		}
+	}
+
+	function readSessionTextDraft(): SessionTextDraft | null {
+		try {
+			const rawDraft = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.textDraft);
+			if (!rawDraft) {
+				return null;
+			}
+
+			const parsedDraft = JSON.parse(rawDraft) as Partial<SessionTextDraft>;
+			const version = parsedDraft.version as Partial<PersistedTextVersion> | undefined;
+			if (
+				typeof parsedDraft.text !== 'string' ||
+				!version ||
+				typeof version.updatedAt !== 'number' ||
+				typeof version.sourceTabId !== 'string' ||
+				typeof version.saveSequence !== 'number'
+			) {
+				return null;
+			}
+
+			return {
+				text: parsedDraft.text,
+				version: {
+					updatedAt: version.updatedAt,
+					sourceTabId: version.sourceTabId,
+					saveSequence: version.saveSequence
+				}
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	function writeSessionTextDraft(nextText: string, version: PersistedTextVersion): void {
+		try {
+			window.sessionStorage.setItem(
+				SESSION_STORAGE_KEYS.textDraft,
+				JSON.stringify({
+					text: nextText,
+					version
+				} satisfies SessionTextDraft)
+			);
+		} catch {
+			// Session storage can fail in restricted contexts.
+		}
+	}
+
+	function clearSessionTextDraft(): void {
+		try {
+			window.sessionStorage.removeItem(SESSION_STORAGE_KEYS.textDraft);
+		} catch {
+			// Session storage can fail in restricted contexts.
 		}
 	}
 
@@ -262,9 +322,23 @@
 	}
 
 	async function initializeTextPersistence(isCancelled: () => boolean): Promise<void> {
+		const sessionDraft = readSessionTextDraft();
+
 		try {
 			const record = await readPersistedTextRecord();
-			if (!record || isCancelled()) {
+			if (isCancelled()) {
+				return;
+			}
+
+			if (sessionDraft && (!record || isPersistedTextVersionNewer(sessionDraft.version, record))) {
+				await updateTextFromPersistence(sessionDraft.text, sessionDraft.version);
+				pendingTextVersion = sessionDraft.version;
+				hasPendingLocalTextEdits = true;
+				scheduleTextPersistence(sessionDraft.text);
+				return;
+			}
+
+			if (!record) {
 				return;
 			}
 
@@ -277,9 +351,18 @@
 				return;
 			}
 
+			pendingTextVersion = null;
+			clearSessionTextDraft();
 			await updateTextFromPersistence(record.text, nextVersion);
 		} catch {
-			// IndexedDB can be unavailable in restricted contexts.
+			if (isCancelled() || !sessionDraft) {
+				return;
+			}
+
+			await updateTextFromPersistence(sessionDraft.text, sessionDraft.version);
+			pendingTextVersion = sessionDraft.version;
+			hasPendingLocalTextEdits = true;
+			scheduleTextPersistence(sessionDraft.text);
 		}
 	}
 
@@ -296,7 +379,7 @@
 			return;
 		}
 
-		const nextVersion = createNextTextVersion();
+		const nextVersion = pendingTextVersion ?? createNextTextVersion();
 		const nextRecord = createPersistedTextRecord(nextText, nextVersion);
 
 		persistTextChain = persistTextChain
@@ -307,8 +390,16 @@
 
 				persistedTextVersion = writtenVersion;
 
-				if (text === writtenRecord.text) {
+				if (
+					pendingTextVersion &&
+					comparePersistedTextVersions(pendingTextVersion, writtenVersion) <= 0
+				) {
+					pendingTextVersion = null;
+				}
+
+				if (text === writtenRecord.text && !pendingTextVersion) {
 					hasPendingLocalTextEdits = false;
+					clearSessionTextDraft();
 				}
 
 				broadcastTextUpdate(writtenVersion);
@@ -344,6 +435,8 @@
 			}
 
 			clearTextPersistence();
+			pendingTextVersion = null;
+			clearSessionTextDraft();
 			await updateTextFromPersistence(record.text, nextVersion);
 		} catch {
 			// Ignore transient IndexedDB read failures.
@@ -439,6 +532,8 @@
 		const target = event.currentTarget as HTMLTextAreaElement;
 		text = target.value;
 		hasPendingLocalTextEdits = true;
+		pendingTextVersion = createNextTextVersion();
+		writeSessionTextDraft(text, pendingTextVersion);
 		scheduleTextPersistence(text);
 	}
 

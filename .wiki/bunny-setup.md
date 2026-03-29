@@ -120,6 +120,11 @@ On pushes to `main`, the workflow:
 
 The deploy step runs [`scripts/deploy-bunny-storage.mjs`](/Users/carlsson/Desktop/GitHub/Plaintext.gg/scripts/deploy-bunny-storage.mjs).
 
+Workflow concurrency behavior:
+
+- pull request runs can cancel older runs on the same PR
+- push runs on `main` queue instead of canceling an in-flight production deploy
+
 ### Required GitHub Actions Secrets
 
 - `BUNNY_API_KEY`
@@ -140,8 +145,8 @@ Do not commit the API key or storage password.
 
 The current deploy script does the following:
 
-1. clears the configured Bunny Storage path
-2. uploads the local `build/` output
+1. uploads the local `build/` output
+2. deletes stale remote files that are no longer present locally
 3. purges the Bunny pull zone cache
 
 Relevant environment defaults in the script:

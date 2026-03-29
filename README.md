@@ -49,8 +49,8 @@ On pushes to `main`, GitHub Actions now:
 
 - runs the test and check pipeline
 - rebuilds the static site
-- deletes the current contents of the configured Bunny Storage zone root
 - uploads the contents of `build/`
+- removes stale files from the configured Bunny Storage path after the new build is in place
 - purges the configured Bunny Pull Zone cache so the CDN stops serving stale assets
 
 Required GitHub Actions secrets:
