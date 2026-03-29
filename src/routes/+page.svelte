@@ -41,6 +41,7 @@
 	} as const;
 
 	let editor = $state<HTMLTextAreaElement | null>(null);
+	let visibleToolbarHeader = $state<HTMLElement | null>(null);
 	let whyDialogOpen = $state(false);
 	let privacyDialogOpen = $state(false);
 	let thanksDialogOpen = $state(false);
@@ -58,6 +59,7 @@
 	let hasPendingLocalTextEdits = false;
 	let localSaveSequence = 0;
 	let pendingTextVersion: PersistedTextVersion | null = null;
+	let visibleToolbarHeight = $state(0);
 
 	const tabId = browser ? createTabId() : 'server';
 	const controlButtonClass =
@@ -131,6 +133,30 @@
 			if (copyFeedbackTimeout) {
 				window.clearTimeout(copyFeedbackTimeout);
 			}
+		};
+	});
+
+	$effect(() => {
+		if (!browser || !visibleToolbarHeader || !showToolbarIcons) {
+			return;
+		}
+
+		const updateToolbarHeight = () => {
+			visibleToolbarHeight = Math.ceil(visibleToolbarHeader?.getBoundingClientRect().height ?? 0);
+		};
+
+		updateToolbarHeight();
+
+		const resizeObserver = new ResizeObserver(() => {
+			updateToolbarHeight();
+		});
+
+		resizeObserver.observe(visibleToolbarHeader);
+		window.addEventListener('resize', updateToolbarHeight);
+
+		return () => {
+			resizeObserver.disconnect();
+			window.removeEventListener('resize', updateToolbarHeight);
 		};
 	});
 
@@ -875,13 +901,14 @@
 >
 	{#if showToolbarIcons}
 		<header
+			bind:this={visibleToolbarHeader}
 			in:fly={{ y: -10, duration: 180 }}
 			out:fly={{ y: -10, duration: 140 }}
-			class="absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--bg)] pl-4 pr-14 py-2.5 text-[0.94rem] font-light transition-[background-color,border-color,color] duration-180 ease-out max-sm:gap-3 max-sm:px-3 max-sm:py-2.5 max-sm:text-base"
+			class="absolute inset-x-0 top-0 z-20 flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-[0.94rem] font-light transition-[background-color,border-color,color] duration-180 ease-out sm:items-center sm:pr-14 max-sm:px-3 max-sm:text-base"
 			style="font-family: var(--font-family-header); font-weight: 300;"
 		>
 			<nav
-				class="flex flex-wrap items-center gap-[0.45rem] max-sm:gap-x-[0.35rem] max-sm:gap-y-[0.25rem]"
+				class="flex flex-wrap items-center gap-2"
 				aria-label="Info"
 			>
 				<Dialog.Root bind:open={whyDialogOpen}>
@@ -1058,85 +1085,85 @@
 				</Dialog.Root>
 			</nav>
 			<div
-			class="ml-auto flex flex-wrap items-center gap-[0.875rem] pl-[0.9rem] max-sm:ml-0 max-sm:pl-0 max-sm:gap-x-3 max-sm:gap-y-[0.35rem]"
-			role="group"
-			aria-label="Editor controls"
-		>
-			{#if showToolbarIcons}
-				<div
-					class="flex items-center gap-[0.2rem] max-sm:gap-[0.3rem]"
-					role="group"
-					aria-label="Font size controls"
-				>
-					<Button.Root
-						type="button"
-						class={[
-							controlButtonClass,
-							'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
-						]}
-						aria-label="Increase font size"
-						disabled={!canIncreaseFont}
-						onclick={() => changeFontSize(FONT_STEP)}
+				class="ml-auto flex flex-wrap items-center gap-2 sm:pl-3 max-sm:ml-0 max-sm:w-full max-sm:justify-start max-sm:gap-1"
+				role="group"
+				aria-label="Editor controls"
+			>
+				{#if showToolbarIcons}
+					<div
+						class="flex items-center gap-1 max-sm:gap-0.5"
+						role="group"
+						aria-label="Font size controls"
 					>
-						{@render plusIcon()}
-					</Button.Root>
-					<Button.Root
-						type="button"
-						class={[
-							controlButtonClass,
-							'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
-						]}
-						aria-label="Decrease font size"
-						disabled={!canDecreaseFont}
-						onclick={() => changeFontSize(-FONT_STEP)}
-					>
-						{@render minusIcon()}
-					</Button.Root>
-				</div>
+						<Button.Root
+							type="button"
+							class={[
+								controlButtonClass,
+								'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
+							]}
+							aria-label="Increase font size"
+							disabled={!canIncreaseFont}
+							onclick={() => changeFontSize(FONT_STEP)}
+						>
+							{@render plusIcon()}
+						</Button.Root>
+						<Button.Root
+							type="button"
+							class={[
+								controlButtonClass,
+								'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
+							]}
+							aria-label="Decrease font size"
+							disabled={!canDecreaseFont}
+							onclick={() => changeFontSize(-FONT_STEP)}
+						>
+							{@render minusIcon()}
+						</Button.Root>
+					</div>
 
-				<Button.Root
-					type="button"
-					class={iconButtonClass}
-					aria-label="Save as plaintext file"
-					onclick={handleSaveClick}
-				>
-					{@render saveIcon()}
-				</Button.Root>
-				<Button.Root
-					type="button"
-					class={[
-						iconButtonClass,
-						copyFeedback === 'success' && 'copy-feedback-success text-[var(--text-primary)]',
-						copyFeedback === 'error' && 'copy-feedback-error text-[var(--feedback-error)]'
-					]}
-					aria-label={
-						copyFeedback === 'success'
-							? 'Copied'
-							: copyFeedback === 'error'
-								? 'Copy failed'
-								: 'Copy plain text'
-					}
-					onclick={handleCopyClick}
-					onmouseleave={clearCopyFeedback}
-				>
-					{#if copyFeedback === 'idle'}
-						{@render copyIcon()}
-					{:else}
-						{@render copyFeedbackIcon()}
-					{/if}
-				</Button.Root>
-				<Toggle.Root
-					class={iconButtonClass}
-					pressed={theme === 'dark'}
-					aria-label={`Toggle theme. Current theme: ${theme}.`}
-					onPressedChange={handleThemePressedChange}
-				>
-					{#if theme === 'dark'}
-						{@render themeDarkIcon()}
-					{:else}
-						{@render themeLightIcon()}
-					{/if}
-				</Toggle.Root>
+					<Button.Root
+						type="button"
+						class={iconButtonClass}
+						aria-label="Save as plaintext file"
+						onclick={handleSaveClick}
+					>
+						{@render saveIcon()}
+					</Button.Root>
+					<Button.Root
+						type="button"
+						class={[
+							iconButtonClass,
+							copyFeedback === 'success' && 'copy-feedback-success text-[var(--text-primary)]',
+							copyFeedback === 'error' && 'copy-feedback-error text-[var(--feedback-error)]'
+						]}
+						aria-label={
+							copyFeedback === 'success'
+								? 'Copied'
+								: copyFeedback === 'error'
+									? 'Copy failed'
+									: 'Copy plain text'
+						}
+						onclick={handleCopyClick}
+						onmouseleave={clearCopyFeedback}
+					>
+						{#if copyFeedback === 'idle'}
+							{@render copyIcon()}
+						{:else}
+							{@render copyFeedbackIcon()}
+						{/if}
+					</Button.Root>
+					<Toggle.Root
+						class={iconButtonClass}
+						pressed={theme === 'dark'}
+						aria-label={`Toggle theme. Current theme: ${theme}.`}
+						onPressedChange={handleThemePressedChange}
+					>
+						{#if theme === 'dark'}
+							{@render themeDarkIcon()}
+						{:else}
+							{@render themeLightIcon()}
+						{/if}
+					</Toggle.Root>
 					<Toggle.Root
 						class={[iconButtonClass, 'sm:hidden']}
 						pressed={!showToolbarIcons}
@@ -1144,36 +1171,36 @@
 						onPressedChange={handleToolbarIconsPressedChange}
 					>
 						{@render toolbarIconsVisibleIcon()}
-				</Toggle.Root>
-			{/if}
+					</Toggle.Root>
+				{/if}
 			</div>
 		</header>
-		{/if}
+	{/if}
 
-		<div class="absolute top-3 right-4 z-30 hidden sm:block">
+	<div class="absolute top-2.5 right-4 z-30 hidden sm:block">
+		<Toggle.Root
+			class={floatingIconButtonClass}
+			pressed={!showToolbarIcons}
+			aria-label={
+				showToolbarIcons ? 'Hide navigation icons and editor controls' : 'Show navigation icons and editor controls'
+			}
+			onPressedChange={handleToolbarIconsPressedChange}
+		>
+			{#if showToolbarIcons}
+				{@render toolbarIconsVisibleIcon()}
+			{:else}
+				{@render toolbarIconsHiddenIcon()}
+			{/if}
+		</Toggle.Root>
+	</div>
+
+	{#if !showToolbarIcons}
+		<div class="absolute top-2 right-3 z-30 sm:hidden">
 			<Toggle.Root
-				class={floatingIconButtonClass}
+				class={hiddenFloatingIconButtonClass}
 				pressed={!showToolbarIcons}
-				aria-label={
-					showToolbarIcons ? 'Hide navigation icons and editor controls' : 'Show navigation icons and editor controls'
-				}
+				aria-label="Show navigation icons and editor controls"
 				onPressedChange={handleToolbarIconsPressedChange}
-			>
-				{#if showToolbarIcons}
-					{@render toolbarIconsVisibleIcon()}
-				{:else}
-					{@render toolbarIconsHiddenIcon()}
-				{/if}
-			</Toggle.Root>
-		</div>
-
-		{#if !showToolbarIcons}
-			<div class="absolute top-2 right-3 z-30 sm:hidden">
-				<Toggle.Root
-					class={hiddenFloatingIconButtonClass}
-					pressed={!showToolbarIcons}
-					aria-label="Show navigation icons and editor controls"
-					onPressedChange={handleToolbarIconsPressedChange}
 			>
 				{@render toolbarIconsHiddenIcon()}
 			</Toggle.Root>
@@ -1185,10 +1212,13 @@
 			bind:this={editor}
 			{...browserQuietingAttributes}
 			value={text}
-				class={[
-					'block h-full min-h-0 w-full box-border resize-none border-0 bg-transparent px-3 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color,padding-top,padding-right] duration-180 ease-out sm:px-4 sm:pb-4',
-					showToolbarIcons ? 'pt-[8.5rem] sm:pt-20' : 'pr-14 pt-10 sm:pr-16 sm:pt-12'
-				]}
+			class={[
+				'block h-full min-h-0 w-full box-border resize-none border-0 bg-transparent px-3 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color,padding-top,padding-right] duration-180 ease-out sm:px-4 sm:pb-4',
+				showToolbarIcons
+					? 'pt-[calc(var(--visible-toolbar-height,0px)+0.75rem)] sm:pt-[calc(var(--visible-toolbar-height,0px)+1rem)]'
+					: 'pr-14 pt-10 sm:pr-16 sm:pt-12'
+			]}
+			style:--visible-toolbar-height={`${visibleToolbarHeight}px`}
 			style:font-size={`${fontSize}px`}
 			aria-label="Plain text editor"
 			aria-autocomplete="none"
