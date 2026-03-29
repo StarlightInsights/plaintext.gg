@@ -5,8 +5,6 @@ import { defineConfig } from 'vite';
 
 const staticAssetGlob = 'client/**/*.{js,css,ico,png,svg,webp,avif,woff,woff2,ttf,otf,eot,webmanifest}';
 const staticAssetMaxAgeSeconds = 60 * 60 * 24 * 365;
-const offlineFallbackPath = '/offline.html';
-const webManifestPath = 'manifest.webmanifest';
 
 export default defineConfig({
 	plugins: [
@@ -20,33 +18,8 @@ export default defineConfig({
 				clientsClaim: true,
 				skipWaiting: true,
 				cleanupOutdatedCaches: true,
-				navigateFallback: null,
-				// Keep the precache scoped to emitted client assets, but preserve the literal
-				// offline HTML URL so Workbox doesn't rewrite it to `/offline`.
-				modifyURLPrefix: {
-					'client/': ''
-				},
-				globPatterns: [staticAssetGlob, 'client/offline.html'],
-				manifestTransforms: [
-					async (entries) => ({
-						manifest: entries
-							.map((entry) => ({
-								...entry,
-								url: entry.url.startsWith('client/') ? entry.url.slice(7) : entry.url
-							}))
-							.filter((entry) => entry.url !== webManifestPath)
-					})
-				],
+				globPatterns: [staticAssetGlob],
 				runtimeCaching: [
-					{
-						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'NetworkOnly',
-						options: {
-							precacheFallback: {
-								fallbackURL: offlineFallbackPath
-							}
-						}
-					},
 					{
 						urlPattern: ({ request, sameOrigin }) =>
 							sameOrigin &&
@@ -68,7 +41,7 @@ export default defineConfig({
 						}
 					}
 				]
-				}
+			}
 			})
 		]
 });
