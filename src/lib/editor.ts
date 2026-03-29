@@ -1,6 +1,7 @@
 export const STORAGE_KEYS = {
 	theme: 'plaintext:theme',
-	fontSize: 'plaintext:fontSize'
+	fontSize: 'plaintext:fontSize',
+	toolbarIcons: 'plaintext:toolbarIcons'
 } as const;
 
 export const SESSION_STORAGE_KEYS = {
@@ -31,6 +32,10 @@ export function parseStoredFontSize(value: string | null): number {
 
 export function normalizeTheme(value: string | null): 'light' | 'dark' {
 	return value === 'dark' ? 'dark' : 'light';
+}
+
+export function normalizeToolbarIconsVisibility(value: string | null): boolean {
+	return value === 'visible';
 }
 
 export function comparePersistedTextVersions(

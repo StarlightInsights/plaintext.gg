@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { Button, Dialog, Toggle } from 'bits-ui';
 	import { tick } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import {
 		clampFontSize,
 		comparePersistedTextVersions,
@@ -11,6 +12,7 @@
 		isPersistedTextVersionNewer,
 		MAX_FONT_SIZE,
 		MIN_FONT_SIZE,
+		normalizeToolbarIconsVisibility,
 		normalizeTheme,
 		parseStoredFontSize,
 		SESSION_STORAGE_KEYS,
@@ -46,6 +48,7 @@
 	let copyFeedback = $state<CopyFeedback>('idle');
 	let text = $state('');
 	let theme = $state<'light' | 'dark'>('light');
+	let showToolbarIcons = $state(true);
 	let fontSize = $state(DEFAULT_FONT_SIZE);
 	let textPersistTimeout = 0;
 	let copyFeedbackTimeout = 0;
@@ -60,6 +63,8 @@
 	const controlButtonClass =
 		'inline-flex cursor-pointer items-center justify-center bg-transparent p-0 text-[oklch(0.49_0_89.88)] no-underline touch-manipulation transition-colors duration-150 ease-out hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] focus-visible:outline-none disabled:cursor-default disabled:text-[var(--text-placeholder)]';
 	const iconButtonClass = `${controlButtonClass} h-8 w-8 p-1 max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:p-2`;
+	const floatingIconButtonClass = iconButtonClass;
+	const hiddenFloatingIconButtonClass = `${floatingIconButtonClass} opacity-65 hover:opacity-100 focus-visible:opacity-100`;
 	const toolbarIconClass = 'pointer-events-none h-[1.3rem] w-[1.3rem] shrink-0 fill-current';
 	const dialogButtonClass =
 		'appearance-none border-0 bg-transparent p-0 text-[var(--text-secondary)] transition-colors duration-180 ease-out hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] focus-visible:outline-none';
@@ -72,6 +77,7 @@
 
 	if (browser) {
 		theme = normalizeTheme(loadStoredValue(STORAGE_KEYS.theme));
+		showToolbarIcons = normalizeToolbarIconsVisibility(loadStoredValue(STORAGE_KEYS.toolbarIcons));
 
 		const storedFontSize = parseStoredFontSize(loadStoredValue(STORAGE_KEYS.fontSize));
 		fontSize = Number.isFinite(storedFontSize)
@@ -551,6 +557,11 @@
 			return;
 		}
 
+		if (event.key === STORAGE_KEYS.toolbarIcons) {
+			showToolbarIcons = normalizeToolbarIconsVisibility(event.newValue);
+			return;
+		}
+
 		if (event.key === STORAGE_KEYS.fontSize) {
 			const nextFontSize = parseStoredFontSize(event.newValue);
 			setFontSize(Number.isFinite(nextFontSize) ? nextFontSize : DEFAULT_FONT_SIZE, false);
@@ -577,6 +588,15 @@
 
 	function handleThemePressedChange(pressed: boolean): void {
 		setTheme(pressed ? 'dark' : 'light');
+	}
+
+	function setToolbarIconsVisibility(shouldShow: boolean): void {
+		showToolbarIcons = shouldShow;
+		saveStoredValue(STORAGE_KEYS.toolbarIcons, shouldShow ? 'visible' : 'hidden');
+	}
+
+	function handleToolbarIconsPressedChange(pressed: boolean): void {
+		setToolbarIconsVisibility(!pressed);
 	}
 
 	function changeFontSize(delta: number): void {
@@ -814,278 +834,361 @@
 	</svg>
 {/snippet}
 
+{#snippet toolbarIconsVisibleIcon()}
+	<svg
+		aria-hidden="true"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 256 256"
+		class={toolbarIconClass}
+	>
+		<path
+			d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Zm0,112a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"
+			opacity="0.2"
+		></path>
+		<path
+			d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"
+		></path>
+	</svg>
+{/snippet}
+
+{#snippet toolbarIconsHiddenIcon()}
+	<svg
+		aria-hidden="true"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 256 256"
+		class={toolbarIconClass}
+	>
+		<path
+			d="M224,104c-16.81,20.81-47.63,48-96,48s-79.19-27.19-96-48c16.81-20.81,47.63-48,96-48S207.19,83.19,224,104Z"
+			opacity="0.2"
+		></path>
+		<path
+			d="M228,175a8,8,0,0,1-10.92-3l-19-33.2A123.23,123.23,0,0,1,162,155.46l5.87,35.22a8,8,0,0,1-6.58,9.21A8.4,8.4,0,0,1,160,200a8,8,0,0,1-7.88-6.69l-5.77-34.58a133.06,133.06,0,0,1-36.68,0l-5.77,34.58A8,8,0,0,1,96,200a8.4,8.4,0,0,1-1.32-.11,8,8,0,0,1-6.58-9.21L94,155.46a123.23,123.23,0,0,1-36.06-16.69L39,172A8,8,0,1,1,25.06,164l20-35a153.47,153.47,0,0,1-19.3-20A8,8,0,1,1,38.22,99c16.6,20.54,45.64,45,89.78,45s73.18-24.49,89.78-45A8,8,0,1,1,230.22,109a153.47,153.47,0,0,1-19.3,20l20,35A8,8,0,0,1,228,175Z"
+		></path>
+	</svg>
+{/snippet}
+
 <div
 	data-theme={theme}
-	class="app-shell grid min-h-dvh grid-rows-[auto_1fr] bg-[var(--bg)] text-[var(--text-primary)] transition-[background-color,color] duration-180 ease-out"
+	class="app-shell relative grid min-h-dvh grid-rows-[1fr] bg-[var(--bg)] text-[var(--text-primary)] transition-[background-color,color] duration-180 ease-out"
 	style="font-family: var(--font-family-main);"
 >
-	<header
-		class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-[0.94rem] font-light transition-[background-color,border-color,color] duration-180 ease-out max-sm:gap-3 max-sm:px-3 max-sm:py-2.5 max-sm:text-base"
-		style="font-family: var(--font-family-header); font-weight: 300;"
-	>
-		<nav class="flex flex-wrap items-center gap-[0.45rem] max-sm:gap-x-[0.35rem] max-sm:gap-y-[0.25rem]" aria-label="Info">
-			<Dialog.Root bind:open={whyDialogOpen}>
-				<Dialog.Trigger class={iconButtonClass} aria-label="Why plaintext?">
-					{@render whyIcon()}
-				</Dialog.Trigger>
-				<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
-				<Dialog.Content
-					class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
-				>
-					<div class="grid gap-5 p-4">
-						<div class="flex items-start justify-between gap-4">
-							<Dialog.Title
-								level={2}
-								class="m-0 text-base font-normal"
-								style="font-family: var(--font-family-title);"
-							>
-								why plaintext.gg?
-							</Dialog.Title>
-							<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
-								x
-							</Dialog.Close>
-						</div>
-
-						<Dialog.Description
-							class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
-							style="font-family: var(--font-family-dialog);"
-						>
-							<p class="m-0">plaintext.gg is a distraction-free writing tool.</p>
-							<p class="m-0">no ai. no formatting.</p>
-							<p class="m-0">just open the page and start typing.</p>
-							<p class="m-0">
-								your text is saved locally in your browser. nothing is sent to any
-								server. ever.
-							</p>
-							<p class="m-0">just a simple way to write, take notes, and strip formatting.</p>
-							<p class="m-0">
-								<a
-									href="https://github.com/StarlightInsights/plaintext.gg"
-									target="_blank"
-									rel="noreferrer"
+	{#if showToolbarIcons}
+		<header
+			in:fly={{ y: -10, duration: 180 }}
+			out:fly={{ y: -10, duration: 140 }}
+			class="absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--bg)] pl-4 pr-14 py-2.5 text-[0.94rem] font-light transition-[background-color,border-color,color] duration-180 ease-out max-sm:gap-3 max-sm:px-3 max-sm:py-2.5 max-sm:text-base"
+			style="font-family: var(--font-family-header); font-weight: 300;"
+		>
+			<nav
+				class="flex flex-wrap items-center gap-[0.45rem] max-sm:gap-x-[0.35rem] max-sm:gap-y-[0.25rem]"
+				aria-label="Info"
+			>
+				<Dialog.Root bind:open={whyDialogOpen}>
+					<Dialog.Trigger class={iconButtonClass} aria-label="Why plaintext?">
+						{@render whyIcon()}
+					</Dialog.Trigger>
+					<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
+					<Dialog.Content
+						class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
+					>
+						<div class="grid gap-5 p-4">
+							<div class="flex items-start justify-between gap-4">
+								<Dialog.Title
+									level={2}
+									class="m-0 text-base font-normal"
+									style="font-family: var(--font-family-title);"
 								>
-									open-source(https://github.com/StarlightInsights/plaintext.gg)
-								</a>
-							</p>
-						</Dialog.Description>
-					</div>
-				</Dialog.Content>
-			</Dialog.Root>
-			<Dialog.Root bind:open={privacyDialogOpen}>
-				<Dialog.Trigger class={iconButtonClass} aria-label="Privacy">
-					{@render privacyIcon()}
-				</Dialog.Trigger>
-				<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
-				<Dialog.Content
-					class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
-				>
-					<div class="grid gap-5 p-4">
-						<div class="flex items-start justify-between gap-4">
-							<Dialog.Title
-								level={2}
-								class="m-0 text-base font-normal"
-								style="font-family: var(--font-family-title);"
+									why plaintext.gg?
+								</Dialog.Title>
+								<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
+									x
+								</Dialog.Close>
+							</div>
+
+							<Dialog.Description
+								class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
+								style="font-family: var(--font-family-dialog);"
 							>
-								privacy
-							</Dialog.Title>
-							<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
-								x
-							</Dialog.Close>
+								<p class="m-0">plaintext.gg is a distraction-free writing tool.</p>
+								<p class="m-0">no ai. no formatting.</p>
+								<p class="m-0">just open the page and start typing.</p>
+								<p class="m-0">
+									your text is saved locally in your browser. nothing is sent to any
+									server. ever.
+								</p>
+								<p class="m-0">just a simple way to write, take notes, and strip formatting.</p>
+								<p class="m-0">
+									<a
+										href="https://github.com/StarlightInsights/plaintext.gg"
+										target="_blank"
+									>
+										open-source.
+									</a>
+								</p>
+							</Dialog.Description>
 						</div>
+					</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root bind:open={privacyDialogOpen}>
+					<Dialog.Trigger class={iconButtonClass} aria-label="Privacy">
+						{@render privacyIcon()}
+					</Dialog.Trigger>
+					<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
+					<Dialog.Content
+						class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
+					>
+						<div class="grid gap-5 p-4">
+							<div class="flex items-start justify-between gap-4">
+								<Dialog.Title
+									level={2}
+									class="m-0 text-base font-normal"
+									style="font-family: var(--font-family-title);"
+								>
+									privacy
+								</Dialog.Title>
+								<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
+									x
+								</Dialog.Close>
+							</div>
 
-						<Dialog.Description
-							class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
-							style="font-family: var(--font-family-dialog);"
-						>
-							<p class="m-0">plaintext.gg stores text in your browser&apos;s IndexedDB.</p>
-							<p class="m-0">
-								theme and font size stay in your browser&apos;s localStorage.
-							</p>
-							<p class="m-0">
-								no cookies. no analytics. no tracking. no accounts. no server. no
-								cloud database.
-							</p>
-							<p class="m-0">your text never leaves your device.</p>
-							<p class="m-0">
-								fonts and icons are bundled with the site.
-							</p>
-							<p class="m-0">
-								we believe the best privacy policy is not needing one at all.
-							</p>
-						</Dialog.Description>
-					</div>
-				</Dialog.Content>
-			</Dialog.Root>
-			<Dialog.Root bind:open={thanksDialogOpen}>
-				<Dialog.Trigger class={iconButtonClass} aria-label="Thanks">
-					{@render thanksIcon()}
-				</Dialog.Trigger>
-				<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
-				<Dialog.Content
-					class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
-				>
-					<div class="grid gap-5 p-4">
-						<div class="flex items-start justify-between gap-4">
-							<Dialog.Title
-								level={2}
-								class="m-0 text-base font-normal"
-								style="font-family: var(--font-family-title);"
+							<Dialog.Description
+								class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
+								style="font-family: var(--font-family-dialog);"
 							>
-								thanks
-							</Dialog.Title>
-							<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
-								x
-							</Dialog.Close>
+								<p class="m-0">plaintext.gg stores text in your browser&apos;s IndexedDB.</p>
+								<p class="m-0">
+									theme, toolbar visibility, and font size stay in your browser&apos;s
+									localStorage.
+								</p>
+								<p class="m-0">
+									no cookies. no analytics. no tracking. no accounts. no server. no
+									cloud database.
+								</p>
+								<p class="m-0">your text never leaves your device.</p>
+								<p class="m-0">
+									fonts and icons are bundled with the site.
+								</p>
+								<p class="m-0">
+									we believe the best privacy policy is not needing one at all.
+								</p>
+							</Dialog.Description>
 						</div>
+					</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root bind:open={thanksDialogOpen}>
+					<Dialog.Trigger class={iconButtonClass} aria-label="Thanks">
+						{@render thanksIcon()}
+					</Dialog.Trigger>
+					<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
+					<Dialog.Content
+						class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
+					>
+						<div class="grid gap-5 p-4">
+							<div class="flex items-start justify-between gap-4">
+								<Dialog.Title
+									level={2}
+									class="m-0 text-base font-normal"
+									style="font-family: var(--font-family-title);"
+								>
+									thanks
+								</Dialog.Title>
+								<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
+									x
+								</Dialog.Close>
+							</div>
 
-						<Dialog.Description
-							class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
-							style="font-family: var(--font-family-dialog);"
-						>
-							<p class="m-0">
-								thank you
-								<a href="https://commitmono.com/" target="_blank" rel="noreferrer">
-									Commit Mono
-								</a>.
-							</p>
-							<p class="m-0">
-								thank you
-								<a href="https://phosphoricons.com/" target="_blank" rel="noreferrer">
-									Phosphor
-								</a>.
-							</p>
-							<p class="m-0">
-								thank you
-								<a href="https://bits-ui.com/" target="_blank" rel="noreferrer">
-									Bits UI
-								</a>.
-							</p>
-						</Dialog.Description>
-					</div>
-				</Dialog.Content>
-			</Dialog.Root>
-			<Dialog.Root bind:open={sisterSitesDialogOpen}>
-				<Dialog.Trigger class={iconButtonClass} aria-label="Sister sites">
-					{@render sisterSitesIcon()}
-				</Dialog.Trigger>
-				<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
-				<Dialog.Content
-					class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
-				>
-					<div class="grid gap-5 p-4">
-						<div class="flex items-start justify-between gap-4">
-							<Dialog.Title
-								level={2}
-								class="m-0 text-base font-normal"
-								style="font-family: var(--font-family-title);"
+							<Dialog.Description
+								class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
+								style="font-family: var(--font-family-dialog);"
 							>
-								sister sites
-							</Dialog.Title>
-							<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
-								x
-							</Dialog.Close>
+								<p class="m-0">
+									thank you
+									<a href="https://commitmono.com/" target="_blank">
+										Commit Mono
+									</a>.
+								</p>
+								<p class="m-0">
+									thank you
+									<a href="https://phosphoricons.com/" target="_blank">
+										Phosphor
+									</a>.
+								</p>
+								<p class="m-0">
+									thank you
+									<a href="https://bits-ui.com/" target="_blank">
+										Bits UI
+									</a>.
+								</p>
+							</Dialog.Description>
 						</div>
+					</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root bind:open={sisterSitesDialogOpen}>
+					<Dialog.Trigger class={iconButtonClass} aria-label="Sister sites">
+						{@render sisterSitesIcon()}
+					</Dialog.Trigger>
+					<Dialog.Overlay class="plain-dialog-overlay fixed inset-0 z-20" />
+					<Dialog.Content
+						class="plain-dialog fixed top-1/2 left-1/2 z-30 w-[min(32rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-[var(--panel-border)] bg-[var(--panel-bg)] p-0 text-[var(--text-primary)] outline-none transition-[background-color,border-color,color] duration-180 ease-out sm:w-[min(32rem,calc(100vw-2rem))]"
+					>
+						<div class="grid gap-5 p-4">
+							<div class="flex items-start justify-between gap-4">
+								<Dialog.Title
+									level={2}
+									class="m-0 text-base font-normal"
+									style="font-family: var(--font-family-title);"
+								>
+									sister sites
+								</Dialog.Title>
+								<Dialog.Close class={dialogButtonClass} aria-label="Close dialog">
+									x
+								</Dialog.Close>
+							</div>
 
-						<Dialog.Description
-							class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
-							style="font-family: var(--font-family-dialog);"
-						>
-							<p class="m-0">Fly By Starlight</p>
-							<p class="m-0">Starlight Calendar</p>
-						</Dialog.Description>
-					</div>
-				</Dialog.Content>
-			</Dialog.Root>
-		</nav>
-
-		<div
+							<Dialog.Description
+								class="dialog-copy grid gap-4 leading-[1.65] text-[var(--text-primary)]"
+								style="font-family: var(--font-family-dialog);"
+							>
+								<p class="m-0">Fly By Starlight</p>
+								<p class="m-0">Starlight Calendar</p>
+							</Dialog.Description>
+						</div>
+					</Dialog.Content>
+				</Dialog.Root>
+			</nav>
+			<div
 			class="ml-auto flex flex-wrap items-center gap-[0.875rem] pl-[0.9rem] max-sm:ml-0 max-sm:pl-0 max-sm:gap-x-3 max-sm:gap-y-[0.35rem]"
 			role="group"
 			aria-label="Editor controls"
 		>
-			<div
-				class="flex items-center gap-[0.2rem] max-sm:gap-[0.3rem]"
-				role="group"
-				aria-label="Font size controls"
-			>
-				<Button.Root
-					type="button"
-					class={[
-						controlButtonClass,
-						'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
-					]}
-					aria-label="Increase font size"
-					disabled={!canIncreaseFont}
-					onclick={() => changeFontSize(FONT_STEP)}
+			{#if showToolbarIcons}
+				<div
+					class="flex items-center gap-[0.2rem] max-sm:gap-[0.3rem]"
+					role="group"
+					aria-label="Font size controls"
 				>
-					{@render plusIcon()}
-				</Button.Root>
-				<Button.Root
-					type="button"
-					class={[
-						controlButtonClass,
-						'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
-					]}
-					aria-label="Decrease font size"
-					disabled={!canDecreaseFont}
-					onclick={() => changeFontSize(-FONT_STEP)}
-				>
-					{@render minusIcon()}
-				</Button.Root>
-			</div>
+					<Button.Root
+						type="button"
+						class={[
+							controlButtonClass,
+							'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
+						]}
+						aria-label="Increase font size"
+						disabled={!canIncreaseFont}
+						onclick={() => changeFontSize(FONT_STEP)}
+					>
+						{@render plusIcon()}
+					</Button.Root>
+					<Button.Root
+						type="button"
+						class={[
+							controlButtonClass,
+							'max-sm:min-h-11 max-sm:min-w-[2.75rem] max-sm:px-[0.2rem] max-sm:py-2'
+						]}
+						aria-label="Decrease font size"
+						disabled={!canDecreaseFont}
+						onclick={() => changeFontSize(-FONT_STEP)}
+					>
+						{@render minusIcon()}
+					</Button.Root>
+				</div>
 
-			<Button.Root
-				type="button"
-				class={iconButtonClass}
-				aria-label="Save as plaintext file"
-				onclick={handleSaveClick}
-			>
-				{@render saveIcon()}
-			</Button.Root>
-			<Button.Root
-				type="button"
-				class={[
-					iconButtonClass,
-					copyFeedback === 'success' && 'copy-feedback-success text-[var(--text-primary)]',
-					copyFeedback === 'error' && 'copy-feedback-error text-[var(--feedback-error)]'
-				]}
-				aria-label={
-					copyFeedback === 'success'
-						? 'Copied'
-						: copyFeedback === 'error'
-							? 'Copy failed'
-							: 'Copy plain text'
-				}
-				onclick={handleCopyClick}
-				onmouseleave={clearCopyFeedback}
-			>
-				{#if copyFeedback === 'idle'}
-					{@render copyIcon()}
-				{:else}
-					{@render copyFeedbackIcon()}
-				{/if}
-			</Button.Root>
+				<Button.Root
+					type="button"
+					class={iconButtonClass}
+					aria-label="Save as plaintext file"
+					onclick={handleSaveClick}
+				>
+					{@render saveIcon()}
+				</Button.Root>
+				<Button.Root
+					type="button"
+					class={[
+						iconButtonClass,
+						copyFeedback === 'success' && 'copy-feedback-success text-[var(--text-primary)]',
+						copyFeedback === 'error' && 'copy-feedback-error text-[var(--feedback-error)]'
+					]}
+					aria-label={
+						copyFeedback === 'success'
+							? 'Copied'
+							: copyFeedback === 'error'
+								? 'Copy failed'
+								: 'Copy plain text'
+					}
+					onclick={handleCopyClick}
+					onmouseleave={clearCopyFeedback}
+				>
+					{#if copyFeedback === 'idle'}
+						{@render copyIcon()}
+					{:else}
+						{@render copyFeedbackIcon()}
+					{/if}
+				</Button.Root>
+				<Toggle.Root
+					class={iconButtonClass}
+					pressed={theme === 'dark'}
+					aria-label={`Toggle theme. Current theme: ${theme}.`}
+					onPressedChange={handleThemePressedChange}
+				>
+					{#if theme === 'dark'}
+						{@render themeDarkIcon()}
+					{:else}
+						{@render themeLightIcon()}
+					{/if}
+				</Toggle.Root>
+					<Toggle.Root
+						class={[iconButtonClass, 'sm:hidden']}
+						pressed={!showToolbarIcons}
+						aria-label="Hide navigation icons and editor controls"
+						onPressedChange={handleToolbarIconsPressedChange}
+					>
+						{@render toolbarIconsVisibleIcon()}
+				</Toggle.Root>
+			{/if}
+			</div>
+		</header>
+		{/if}
+
+		<div class="absolute top-3 right-4 z-30 hidden sm:block">
 			<Toggle.Root
-				class={iconButtonClass}
-				pressed={theme === 'dark'}
-				aria-label={`Toggle theme. Current theme: ${theme}.`}
-				onPressedChange={handleThemePressedChange}
+				class={floatingIconButtonClass}
+				pressed={!showToolbarIcons}
+				aria-label={
+					showToolbarIcons ? 'Hide navigation icons and editor controls' : 'Show navigation icons and editor controls'
+				}
+				onPressedChange={handleToolbarIconsPressedChange}
 			>
-				{#if theme === 'dark'}
-					{@render themeDarkIcon()}
+				{#if showToolbarIcons}
+					{@render toolbarIconsVisibleIcon()}
 				{:else}
-					{@render themeLightIcon()}
+					{@render toolbarIconsHiddenIcon()}
 				{/if}
 			</Toggle.Root>
 		</div>
-		</header>
 
-	<main class="min-h-0 overflow-hidden">
+		{#if !showToolbarIcons}
+			<div class="absolute top-2 right-3 z-30 sm:hidden">
+				<Toggle.Root
+					class={hiddenFloatingIconButtonClass}
+					pressed={!showToolbarIcons}
+					aria-label="Show navigation icons and editor controls"
+					onPressedChange={handleToolbarIconsPressedChange}
+			>
+				{@render toolbarIconsHiddenIcon()}
+			</Toggle.Root>
+		</div>
+	{/if}
+
+	<main class="relative min-h-0 overflow-hidden">
 		<textarea
 			bind:this={editor}
 			{...browserQuietingAttributes}
 			value={text}
-			class="block h-full min-h-0 w-full box-border resize-none border-0 bg-transparent px-3 pt-4 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color] duration-180 ease-out sm:px-4 sm:pt-5 sm:pb-4"
+				class={[
+					'block h-full min-h-0 w-full box-border resize-none border-0 bg-transparent px-3 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color,padding-top,padding-right] duration-180 ease-out sm:px-4 sm:pb-4',
+					showToolbarIcons ? 'pt-[8.5rem] sm:pt-20' : 'pr-14 pt-10 sm:pr-16 sm:pt-12'
+				]}
 			style:font-size={`${fontSize}px`}
 			aria-label="Plain text editor"
 			aria-autocomplete="none"
