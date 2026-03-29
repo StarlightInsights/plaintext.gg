@@ -63,6 +63,9 @@
 	const toolbarIconClass = 'pointer-events-none h-[1.3rem] w-[1.3rem] shrink-0 fill-current';
 	const dialogButtonClass =
 		'appearance-none border-0 bg-transparent p-0 text-[var(--text-secondary)] transition-colors duration-180 ease-out hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] focus-visible:outline-none';
+	const browserQuietingAttributes: Record<string, string> = {
+		autocorrect: 'off'
+	};
 
 	let canIncreaseFont = $derived(fontSize < MAX_FONT_SIZE);
 	let canDecreaseFont = $derived(fontSize > MIN_FONT_SIZE);
@@ -1049,14 +1052,22 @@
 	<main class="min-h-0 overflow-hidden">
 		<textarea
 			bind:this={editor}
+			{...browserQuietingAttributes}
 			value={text}
 			class="block h-full min-h-0 w-full box-border resize-none border-0 bg-transparent px-3 pt-4 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color] duration-180 ease-out sm:px-4 sm:pt-5 sm:pb-4"
 			style:font-size={`${fontSize}px`}
 			aria-label="Plain text editor"
+			aria-autocomplete="none"
 			placeholder="just plain text..."
 			spellcheck="false"
 			autocapitalize="none"
 			autocomplete="off"
+			inputmode="text"
+			enterkeyhint="done"
+			data-form-type="other"
+			data-lpignore="true"
+			data-1p-ignore="true"
+			data-bwignore="true"
 			data-gramm="false"
 			data-gramm_editor="false"
 			data-enable-grammarly="false"
