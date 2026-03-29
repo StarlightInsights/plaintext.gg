@@ -781,11 +781,11 @@
 		</Toolbar.Root>
 		</header>
 
-	<main class="min-h-0">
+	<main class="min-h-0 overflow-hidden">
 		<textarea
 			bind:this={editor}
 			value={text}
-			class="h-full min-h-0 w-full resize-none border-0 bg-transparent px-3 pt-4 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color] duration-180 ease-out sm:px-4 sm:pt-5 sm:pb-4"
+			class="block h-full min-h-0 w-full box-border resize-none border-0 bg-transparent px-3 pt-4 pb-3 leading-[1.65] text-[var(--text-primary)] caret-[var(--text-primary)] outline-none transition-[background-color,color,caret-color] duration-180 ease-out sm:px-4 sm:pt-5 sm:pb-4"
 			style:font-size={`${fontSize}px`}
 			aria-label="Plain text editor"
 			placeholder="just plain text..."
