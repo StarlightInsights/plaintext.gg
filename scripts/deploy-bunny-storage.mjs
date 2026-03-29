@@ -145,6 +145,10 @@ async function walkFiles(directory) {
 	const files = [];
 
 	for (const entry of entries) {
+		if (entry.name === '.wiki') {
+			continue;
+		}
+
 		const fullPath = path.join(directory, entry.name);
 		if (entry.isDirectory()) {
 			files.push(...(await walkFiles(fullPath)));
