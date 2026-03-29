@@ -3,3 +3,4 @@ packages:
 
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.1.14
+  '@rollup/plugin-terser': 1.0.0
