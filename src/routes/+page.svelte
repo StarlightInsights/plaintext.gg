@@ -93,15 +93,10 @@
 			return;
 		}
 
+		document.documentElement.dataset.theme = theme;
 		document.documentElement.style.colorScheme = theme;
-		const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-		if (themeColorMeta instanceof HTMLMetaElement) {
-			themeColorMeta.content = THEME_COLORS[theme];
-		}
-
-		return () => {
-			document.documentElement.style.removeProperty('color-scheme');
-		};
+		document.documentElement.style.backgroundColor = THEME_COLORS[theme];
+		updateThemeColorMetaTags(THEME_COLORS[theme]);
 	});
 
 	$effect(() => {
@@ -243,6 +238,14 @@
 		} catch {
 			// Storage can fail in private or restricted contexts.
 		}
+	}
+
+	function updateThemeColorMetaTags(color: string): void {
+		document.querySelectorAll('meta[name="theme-color"]').forEach((element) => {
+			if (element instanceof HTMLMetaElement) {
+				element.content = color;
+			}
+		});
 	}
 
 	function readSessionTextDraft(): SessionTextDraft | null {
@@ -712,7 +715,7 @@
 	<title>plaintext.gg</title>
 	<meta
 		name="description"
-		content="the distraction-free writing tool that strips formatting and don't uses ai"
+		content="the distraction-free writing tool that strips formatting and does not use AI"
 	/>
 	<meta
 		name="keywords"
@@ -722,14 +725,14 @@
 	<meta property="og:title" content="plaintext.gg" />
 	<meta
 		property="og:description"
-		content="the distraction-free writing tool that strips formatting and don't uses ai"
+		content="the distraction-free writing tool that strips formatting and does not use AI"
 	/>
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content="plaintext.gg" />
 	<meta
 		name="twitter:description"
-		content="the distraction-free writing tool that strips formatting and don't uses ai"
+		content="the distraction-free writing tool that strips formatting and does not use AI"
 	/>
 </svelte:head>
 

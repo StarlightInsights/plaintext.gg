@@ -12,6 +12,7 @@ import {
 	normalizeTheme,
 	parseStoredFontSize
 } from '../src/lib/editor.ts';
+import { createPersistedTextRecord } from '../src/lib/text-persistence.ts';
 
 test('parseStoredFontSize returns NaN for missing values', () => {
 	assert.equal(Number.isNaN(parseStoredFontSize(null)), true);
@@ -35,6 +36,10 @@ test('normalizeTheme defaults unknown values to light', () => {
 
 test('normalizeTheme keeps dark mode', () => {
 	assert.equal(normalizeTheme('dark'), 'dark');
+});
+
+test('normalizeTheme defaults missing values to light', () => {
+	assert.equal(normalizeTheme(null), 'light');
 });
 
 test('normalizeToolbarIconsVisibility defaults unknown values to hidden', () => {
@@ -65,6 +70,10 @@ test('comparePersistedTextVersions breaks ties by tab id and sequence', () => {
 	);
 });
 
+test('comparePersistedTextVersions treats two missing versions as equal', () => {
+	assert.equal(comparePersistedTextVersions(null, null), 0);
+});
+
 test('isPersistedTextVersionNewer handles missing current version', () => {
 	assert.equal(
 		isPersistedTextVersionNewer(
@@ -72,5 +81,32 @@ test('isPersistedTextVersionNewer handles missing current version', () => {
 			null
 		),
 		true
+	);
+});
+
+test('isPersistedTextVersionNewer returns false when versions are equal', () => {
+	assert.equal(
+		isPersistedTextVersionNewer(
+			{ updatedAt: 20, sourceTabId: 'tab-a', saveSequence: 1 },
+			{ updatedAt: 20, sourceTabId: 'tab-a', saveSequence: 1 }
+		),
+		false
+	);
+});
+
+test('createPersistedTextRecord uses the current document id and version', () => {
+	assert.deepEqual(
+		createPersistedTextRecord('hello', {
+			updatedAt: 20,
+			sourceTabId: 'tab-a',
+			saveSequence: 1
+		}),
+		{
+			id: 'current',
+			text: 'hello',
+			updatedAt: 20,
+			sourceTabId: 'tab-a',
+			saveSequence: 1
+		}
 	);
 });

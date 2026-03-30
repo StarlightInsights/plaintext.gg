@@ -62,6 +62,7 @@ textarea {
   --ui-transition: 180ms ease;
 }
 
+html[data-theme="dark"] .app-shell,
 .app-shell[data-theme="dark"] {
   --bg: oklch(0.2178 0 89.88);
   --panel-bg: oklch(0.252 0 89.88);
@@ -112,6 +113,8 @@ textarea {
   outline: none;
 }
 
+html[data-theme="dark"] .dialog-copy a,
+html[data-theme="dark"] .dialog-copy a:visited,
 .app-shell[data-theme="dark"] .dialog-copy a,
 .app-shell[data-theme="dark"] .dialog-copy a:visited {
   color: var(--text-secondary);
