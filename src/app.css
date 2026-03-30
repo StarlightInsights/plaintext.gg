@@ -12,7 +12,7 @@
   font-family: "CommitMono-250-Regular";
   src: url("/fonts/CommitMono-250-Regular.woff2") format("woff2");
   font-style: normal;
-  font-weight: 300;
+  font-weight: 250;
   font-display: swap;
 }
 
@@ -20,7 +20,7 @@
   font-family: "CommitMono-200-Regular";
   src: url("/fonts/CommitMono-200-Regular.woff2") format("woff2");
   font-style: normal;
-  font-weight: 300;
+  font-weight: 200;
   font-display: swap;
 }
 
@@ -59,7 +59,7 @@ textarea {
   --text-placeholder: oklch(0.8452 0 89.88);
   --feedback-error: oklch(0.58 0.18 23);
   --overlay: oklch(0 0 0 / 0.4);
-  --ui-transition: 180ms ease;
+  --ui-transition: 180ms ease-out;
 }
 
 html[data-theme="dark"] .app-shell,
@@ -77,28 +77,40 @@ html[data-theme="dark"] .app-shell,
 
 .plain-dialog {
   max-height: calc(100dvh - 1rem);
+  opacity: 0;
+  transition:
+    opacity 100ms ease-in,
+    overlay 100ms ease-in allow-discrete,
+    display 100ms ease-in allow-discrete;
 }
 
-.plain-dialog[data-state="open"] {
-  animation: dialog-fade-in 160ms ease-out both;
+.plain-dialog[open] {
+  opacity: 1;
+  transition:
+    opacity 160ms ease-out,
+    overlay 160ms ease-out allow-discrete,
+    display 160ms ease-out allow-discrete;
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
-.plain-dialog[data-state="closed"] {
-  animation: dialog-fade-out 100ms ease-in both;
-}
-
-.plain-dialog-overlay {
+.plain-dialog::backdrop {
   background-color: var(--overlay);
   opacity: 0;
-  will-change: opacity;
+  transition:
+    opacity 80ms ease-in,
+    overlay 80ms ease-in allow-discrete,
+    display 80ms ease-in allow-discrete;
 }
 
-.plain-dialog-overlay[data-state="open"] {
-  animation: dialog-overlay-in 80ms ease-out both;
-}
+.plain-dialog[open]::backdrop {
+  opacity: 1;
 
-.plain-dialog-overlay[data-state="closed"] {
-  animation: dialog-overlay-out 80ms ease-in both;
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .dialog-copy a,
@@ -122,46 +134,6 @@ html[data-theme="dark"] .dialog-copy a:visited,
 
 .editor-copy-feedback {
   animation: editor-copy-pulse 620ms ease-in-out;
-}
-
-@keyframes dialog-fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes dialog-fade-out {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes dialog-overlay-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes dialog-overlay-out {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
 }
 
 @keyframes editor-copy-pulse {

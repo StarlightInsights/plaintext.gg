@@ -1,0 +1,12 @@
+export { default as ThemeLightIcon } from './ThemeLightIcon.svelte';
+export { default as ThemeDarkIcon } from './ThemeDarkIcon.svelte';
+export { default as SaveIcon } from './SaveIcon.svelte';
+export { default as CopyIcon } from './CopyIcon.svelte';
+export { default as CopyFeedbackIcon } from './CopyFeedbackIcon.svelte';
+export { default as FontUpIcon } from './FontUpIcon.svelte';
+export { default as FontDownIcon } from './FontDownIcon.svelte';
+export { default as InfoIcon } from './InfoIcon.svelte';
+export { default as PrivacyIcon } from './PrivacyIcon.svelte';
+export { default as ThanksIcon } from './ThanksIcon.svelte';
+export { default as ToolbarVisibleIcon } from './ToolbarVisibleIcon.svelte';
+export { default as ToolbarHiddenIcon } from './ToolbarHiddenIcon.svelte';

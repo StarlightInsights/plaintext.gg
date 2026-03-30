@@ -91,10 +91,30 @@ export async function readPersistedTextRecord(): Promise<PersistedTextRecord | n
 	const transaction = database.transaction(TEXT_STORE_NAME, 'readonly');
 	const store = transaction.objectStore(TEXT_STORE_NAME);
 	const record = await wrapRequest(
-		store.get(CURRENT_TEXT_RECORD_ID) as IDBRequest<PersistedTextRecord | undefined>
+		store.get(CURRENT_TEXT_RECORD_ID) as IDBRequest<unknown>
 	);
 
-	return record ?? null;
+	if (!record || typeof record !== 'object') {
+		return null;
+	}
+
+	const candidate = record as Partial<PersistedTextRecord>;
+	if (
+		typeof candidate.text !== 'string' ||
+		typeof candidate.updatedAt !== 'number' ||
+		typeof candidate.sourceTabId !== 'string' ||
+		typeof candidate.saveSequence !== 'number'
+	) {
+		return null;
+	}
+
+	return {
+		id: CURRENT_TEXT_RECORD_ID,
+		text: candidate.text,
+		updatedAt: candidate.updatedAt,
+		sourceTabId: candidate.sourceTabId,
+		saveSequence: candidate.saveSequence
+	};
 }
 
 export async function writePersistedTextRecord(
