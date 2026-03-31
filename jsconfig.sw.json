@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "WebWorker"]
+  },
+  "include": ["public/sw.js"],
+  "exclude": ["node_modules"]
+}

@@ -2,8 +2,10 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs';
 import { join, extname } from 'node:path';
 
+/** @type {number} */
 const port = parseInt(process.argv[2] || '3000', 10);
 
+/** @type {Record<string, string>} */
 const TYPES = {
   html: 'text/html',
   css: 'text/css',
@@ -17,8 +19,12 @@ const TYPES = {
   txt: 'text/plain',
 };
 
-createServer((req, res) => {
-  let url = req.url.split('?')[0];
+/**
+ * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').ServerResponse} res
+ */
+function handleRequest(req, res) {
+  let url = /** @type {string} */ (req.url).split('?')[0];
   if (url === '/') url = '/index.html';
 
   readFile(join('public', url), (err, data) => {
@@ -27,4 +33,6 @@ createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': TYPES[ext] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(port, () => console.log(`http://localhost:${port}`));
+}
+
+createServer(handleRequest).listen(port, () => console.log(`http://localhost:${port}`));

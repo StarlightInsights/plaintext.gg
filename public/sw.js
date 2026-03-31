@@ -1,5 +1,9 @@
+var sw = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (self));
+
+/** @type {string} */
 const CACHE_NAME = 'plaintext-v1';
 
+/** @type {string[]} */
 const PRECACHE_URLS = [
   '/',
   '/app.css',
@@ -16,23 +20,23 @@ const PRECACHE_URLS = [
   '/fonts/CommitMono-300-Regular.woff2',
 ];
 
-self.addEventListener('install', (event) => {
+sw.addEventListener('install', /** @param {ExtendableEvent} event */ (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
-  self.skipWaiting();
+  sw.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+sw.addEventListener('activate', /** @param {ExtendableEvent} event */ (event) => {
   event.waitUntil(
     caches.keys().then((names) =>
       Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
     )
   );
-  self.clients.claim();
+  sw.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
+sw.addEventListener('fetch', /** @param {FetchEvent} event */ (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(

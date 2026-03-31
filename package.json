@@ -7,9 +7,13 @@
     "test": "node --test tests/editor.test.js",
     "test:e2e": "npx playwright test",
     "test:all": "node --test tests/editor.test.js && npx playwright test",
+    "typecheck": "tsc -p jsconfig.json --noEmit && tsc -p jsconfig.sw.json --noEmit && tsc -p jsconfig.server.json --noEmit",
+    "check": "npm run typecheck && npm run test:all",
     "deploy": "node scripts/deploy-bunny-storage.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.0"
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
   }
 }
