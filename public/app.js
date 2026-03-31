@@ -2,6 +2,12 @@
 // plaintext.gg — zero-dependency vanilla JS
 // ============================================================
 
+/** @typedef {import('./shared.js').Version} Version */
+/** @typedef {import('./shared.js').DocumentRecord} DocumentRecord */
+/** @typedef {import('./shared.js').SessionDraft} SessionDraft */
+/** @typedef {import('./shared.js').SyncMessage} SyncMessage */
+/** @typedef {import('./shared.js').Theme} Theme */
+
 import {
   STORAGE_KEYS, SESSION_KEYS, DEFAULT_FONT_SIZE, FONT_STEP,
   MIN_FONT_SIZE, MAX_FONT_SIZE, COPY_FEEDBACK_MS, PERSIST_DELAY_MS,
@@ -15,14 +21,30 @@ import {
 
   // ---- localStorage helpers ----
 
+  /**
+   * Read a value from localStorage, returning null on any error.
+   * @param {string} key
+   * @returns {string | null}
+   */
   function loadStored(key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
   }
 
+  /**
+   * Write a value to localStorage, silently swallowing errors.
+   * @param {string} key
+   * @param {string} value
+   * @returns {void}
+   */
   function saveStored(key, value) {
     try { localStorage.setItem(key, value); } catch (e) {}
   }
 
+  /**
+   * Update all theme-color meta tags to the given color.
+   * @param {string} color
+   * @returns {void}
+   */
   function updateThemeColorMeta(color) {
     document.querySelectorAll('meta[name="theme-color"]').forEach(function (el) {
       if (el instanceof HTMLMetaElement) el.content = color;
@@ -31,6 +53,11 @@ import {
 
   // ---- sessionStorage helpers ----
 
+  /**
+   * Read the crash-recovery draft from sessionStorage.
+   * Returns null if missing, corrupt, or on any error.
+   * @returns {SessionDraft | null}
+   */
   function readSessionDraft() {
     try {
       var raw = sessionStorage.getItem(SESSION_KEYS.textDraft);
@@ -43,27 +70,53 @@ import {
     } catch (e) { return null; }
   }
 
+  /**
+   * Write a crash-recovery draft to sessionStorage.
+   * @param {string} text
+   * @param {Version} version
+   * @returns {void}
+   */
   function writeSessionDraft(text, version) {
     try { sessionStorage.setItem(SESSION_KEYS.textDraft, JSON.stringify({ text: text, version: version })); } catch (e) {}
   }
 
+  /**
+   * Remove the crash-recovery draft from sessionStorage.
+   * @returns {void}
+   */
   function clearSessionDraft() {
     try { sessionStorage.removeItem(SESSION_KEYS.textDraft); } catch (e) {}
   }
 
   // ---- IndexedDB persistence ----
 
+  /** @type {string} */
   var DB_NAME = 'plaintext';
+  /** @type {number} */
   var DB_VERSION = 1;
+  /** @type {string} */
   var STORE_NAME = 'documents';
+  /** @type {'current'} */
   var RECORD_ID = 'current';
+  /** @type {Promise<IDBDatabase> | null} */
   var dbPromise = null;
 
+  /**
+   * Reset the cached database promise, cleaning up event handlers.
+   * @param {IDBDatabase} [db]
+   * @returns {void}
+   */
   function resetDb(db) {
     if (db) { db.onclose = null; db.onversionchange = null; }
     dbPromise = null;
   }
 
+  /**
+   * Wrap an IDBRequest in a Promise.
+   * @template T
+   * @param {IDBRequest<T>} req
+   * @returns {Promise<T>}
+   */
   function wrapRequest(req) {
     return new Promise(function (resolve, reject) {
       req.onsuccess = function () { resolve(req.result); };
@@ -71,6 +124,10 @@ import {
     });
   }
 
+  /**
+   * Open (or reuse) the IndexedDB database connection.
+   * @returns {Promise<IDBDatabase>}
+   */
   function openDb() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise(function (resolve, reject) {
@@ -93,6 +150,11 @@ import {
     return dbPromise;
   }
 
+  /**
+   * Read the current document record from IndexedDB.
+   * Returns null if missing or malformed.
+   * @returns {Promise<DocumentRecord | null>}
+   */
   function readRecord() {
     return openDb().then(function (db) {
       var tx = db.transaction(STORE_NAME, 'readonly');
@@ -112,6 +174,11 @@ import {
     });
   }
 
+  /**
+   * Write a document record to IndexedDB, resolving when the transaction completes.
+   * @param {DocumentRecord} record
+   * @returns {Promise<DocumentRecord>}
+   */
   function writeRecord(record) {
     return openDb().then(function (db) {
       var tx = db.transaction(STORE_NAME, 'readwrite');
@@ -128,6 +195,13 @@ import {
 
   // ---- Clipboard helpers ----
 
+  /**
+   * Copy plain text to the clipboard, using the best available API.
+   * Falls back to execCommand('copy') if the Clipboard API is unavailable.
+   * @param {string} value - Text to copy
+   * @param {HTMLTextAreaElement} [fallbackEl] - Textarea for execCommand fallback
+   * @returns {Promise<boolean>} Whether the copy succeeded
+   */
   function copyPlainText(value, fallbackEl) {
     if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
       var item = new ClipboardItem({ 'text/plain': new Blob([value], { type: 'text/plain' }) });
@@ -147,6 +221,12 @@ import {
     return Promise.resolve(ok);
   }
 
+  /**
+   * Download text as a .txt file via a temporary anchor element.
+   * @param {string} value - Text content to download
+   * @param {string} [filename='plaintext.txt'] - Filename for the download
+   * @returns {void}
+   */
   function downloadFile(value, filename) {
     var blob = new Blob([value], { type: 'text/plain;charset=utf-8' });
     var url = URL.createObjectURL(blob);
@@ -161,68 +241,100 @@ import {
 
   // ---- BroadcastChannel helpers ----
 
+  /**
+   * Create a SyncMessage from a version vector for cross-tab broadcasting.
+   * @param {Version} version
+   * @returns {SyncMessage}
+   */
   function createSyncMessage(version) {
     return { type: 'text-updated', updatedAt: version.updatedAt, sourceTabId: version.sourceTabId, saveSequence: version.saveSequence };
   }
 
+  /**
+   * Validate and parse a raw BroadcastChannel message into a SyncMessage.
+   * Returns null if the message is invalid.
+   * @param {unknown} value
+   * @returns {SyncMessage | null}
+   */
   function parseSyncMessage(value) {
     if (!value || typeof value !== 'object') return null;
-    if (value.type !== 'text-updated') return null;
-    if (typeof value.updatedAt !== 'number' || typeof value.sourceTabId !== 'string' ||
-        typeof value.saveSequence !== 'number') return null;
-    return { type: value.type, updatedAt: value.updatedAt, sourceTabId: value.sourceTabId, saveSequence: value.saveSequence };
+    if (/** @type {any} */ (value).type !== 'text-updated') return null;
+    var v = /** @type {any} */ (value);
+    if (typeof v.updatedAt !== 'number' || typeof v.sourceTabId !== 'string' ||
+        typeof v.saveSequence !== 'number') return null;
+    return { type: v.type, updatedAt: v.updatedAt, sourceTabId: v.sourceTabId, saveSequence: v.saveSequence };
   }
 
   // ---- DOM refs ----
+  // These elements are guaranteed to exist in the HTML — no null checks needed.
 
-  var appShell = document.getElementById('app-shell');
-  var toolbar = document.getElementById('toolbar');
-  var editorEl = document.getElementById('editor');
-  var btnInfo = document.getElementById('btn-info');
-  var btnPrivacy = document.getElementById('btn-privacy');
-  var btnThanks = document.getElementById('btn-thanks');
-  var btnFontUp = document.getElementById('btn-font-up');
-  var btnFontDown = document.getElementById('btn-font-down');
-  var btnSave = document.getElementById('btn-save');
-  var btnCopy = document.getElementById('btn-copy');
-  var btnTheme = document.getElementById('btn-theme');
-  var btnHideMobile = document.getElementById('btn-hide-mobile');
-  var btnToggleDesktop = document.getElementById('btn-toggle-desktop');
-  var btnToggleMobile = document.getElementById('btn-toggle-mobile');
-  var toggleDesktop = document.getElementById('toggle-desktop');
-  var toggleMobile = document.getElementById('toggle-mobile');
-  var dialogInfo = document.getElementById('dialog-info');
-  var dialogPrivacy = document.getElementById('dialog-privacy');
-  var dialogThanks = document.getElementById('dialog-thanks');
-  var iconCopy = document.getElementById('icon-copy');
-  var iconCopyFeedback = document.getElementById('icon-copy-feedback');
-  var iconThemeLight = document.getElementById('icon-theme-light');
-  var iconThemeDark = document.getElementById('icon-theme-dark');
-  var iconEyeOpen = document.getElementById('icon-eye-open');
-  var iconEyeClosed = document.getElementById('icon-eye-closed');
+  var appShell = /** @type {HTMLDivElement} */ (document.getElementById('app-shell'));
+  var toolbar = /** @type {HTMLElement} */ (document.getElementById('toolbar'));
+  var editorEl = /** @type {HTMLTextAreaElement} */ (document.getElementById('editor'));
+  var btnInfo = /** @type {HTMLButtonElement} */ (document.getElementById('btn-info'));
+  var btnPrivacy = /** @type {HTMLButtonElement} */ (document.getElementById('btn-privacy'));
+  var btnThanks = /** @type {HTMLButtonElement} */ (document.getElementById('btn-thanks'));
+  var btnFontUp = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-up'));
+  var btnFontDown = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-down'));
+  var btnSave = /** @type {HTMLButtonElement} */ (document.getElementById('btn-save'));
+  var btnCopy = /** @type {HTMLButtonElement} */ (document.getElementById('btn-copy'));
+  var btnTheme = /** @type {HTMLButtonElement} */ (document.getElementById('btn-theme'));
+  var btnHideMobile = /** @type {HTMLButtonElement} */ (document.getElementById('btn-hide-mobile'));
+  var btnToggleDesktop = /** @type {HTMLButtonElement} */ (document.getElementById('btn-toggle-desktop'));
+  var btnToggleMobile = /** @type {HTMLButtonElement} */ (document.getElementById('btn-toggle-mobile'));
+  var toggleDesktop = /** @type {HTMLDivElement} */ (document.getElementById('toggle-desktop'));
+  var toggleMobile = /** @type {HTMLDivElement} */ (document.getElementById('toggle-mobile'));
+  var dialogInfo = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-info'));
+  var dialogPrivacy = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-privacy'));
+  var dialogThanks = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-thanks'));
+  var iconCopy = /** @type {HTMLElement} */ (document.getElementById('icon-copy'));
+  var iconCopyFeedback = /** @type {HTMLElement} */ (document.getElementById('icon-copy-feedback'));
+  var iconThemeLight = /** @type {HTMLElement} */ (document.getElementById('icon-theme-light'));
+  var iconThemeDark = /** @type {HTMLElement} */ (document.getElementById('icon-theme-dark'));
+  var iconEyeOpen = /** @type {HTMLElement} */ (document.getElementById('icon-eye-open'));
+  var iconEyeClosed = /** @type {HTMLElement} */ (document.getElementById('icon-eye-closed'));
 
   // ---- State ----
 
+  /** @type {string} */
   var text = '';
+  /** @type {Theme} */
   var theme = normalizeTheme(loadStored(STORAGE_KEYS.theme));
+  /** @type {boolean} */
   var showToolbar = normalizeToolbarVisibility(loadStored(STORAGE_KEYS.toolbarIcons));
+  /** @type {number} */
   var fontSize = DEFAULT_FONT_SIZE;
+  /** @type {number} */
   var _storedSize = parseStoredFontSize(loadStored(STORAGE_KEYS.fontSize));
   if (Number.isFinite(_storedSize)) fontSize = clampFontSize(_storedSize);
 
+  /** @type {string} */
   var tabId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  /** @type {number} */
   var localSaveSequence = 0;
+  /** @type {Version | null} */
   var persistedVersion = null;
+  /** @type {Version | null} */
   var pendingVersion = null;
+  /** @type {boolean} */
   var hasPendingEdits = false;
+  /** @type {number} */
   var persistTimeout = 0;
+  /** @type {number} */
   var copyFeedbackTimeout = 0;
+  /** @type {Promise<void>} */
   var persistChain = Promise.resolve();
+  /** @type {BroadcastChannel | null} */
   var broadcastChannel = null;
+  /** @type {boolean} */
   var enableMotion = false;
 
   // ---- Apply initial state ----
 
+  /**
+   * Apply the current theme to the document and update UI indicators.
+   * @returns {void}
+   */
   function applyTheme() {
     var root = document.documentElement;
     root.dataset.theme = theme;
@@ -236,12 +348,20 @@ import {
     btnTheme.setAttribute('aria-label', 'Toggle theme. Current theme: ' + theme + '.');
   }
 
+  /**
+   * Apply the current font size to the editor and update button disabled states.
+   * @returns {void}
+   */
   function applyFontSize() {
     editorEl.style.fontSize = fontSize + 'px';
     btnFontUp.disabled = fontSize >= MAX_FONT_SIZE;
     btnFontDown.disabled = fontSize <= MIN_FONT_SIZE;
   }
 
+  /**
+   * Measure the current toolbar height in pixels (0 if hidden).
+   * @returns {number}
+   */
   function measureToolbarHeight() {
     if (showToolbar && toolbar && !toolbar.classList.contains('hidden')) {
       return Math.ceil(toolbar.getBoundingClientRect().height);
@@ -249,6 +369,10 @@ import {
     return 0;
   }
 
+  /**
+   * Adjust editor padding to account for toolbar or floating toggle.
+   * @returns {void}
+   */
   function applyEditorPadding() {
     if (showToolbar) {
       var h = measureToolbarHeight();
@@ -261,6 +385,11 @@ import {
     }
   }
 
+  /**
+   * Show or hide the toolbar and update toggle icons/ARIA state.
+   * @param {boolean} animate - Whether to play the slide-in animation
+   * @returns {void}
+   */
   function applyToolbarVisibility(animate) {
     if (showToolbar) {
       toolbar.classList.remove('hidden');
@@ -284,14 +413,27 @@ import {
 
   // ---- Text persistence logic ----
 
+  /**
+   * Create the next version vector, incrementing the local save sequence.
+   * @returns {Version}
+   */
   function createNextVersion() {
     return { updatedAt: Date.now(), sourceTabId: tabId, saveSequence: ++localSaveSequence };
   }
 
+  /**
+   * Cancel any pending debounced persist timer.
+   * @returns {void}
+   */
   function clearPersistTimer() {
     if (persistTimeout) { clearTimeout(persistTimeout); persistTimeout = 0; }
   }
 
+  /**
+   * Schedule a debounced persist of the given text after PERSIST_DELAY_MS.
+   * @param {string} nextText
+   * @returns {void}
+   */
   function schedulePersist(nextText) {
     clearPersistTimer();
     persistTimeout = setTimeout(function () {
@@ -300,17 +442,32 @@ import {
     }, PERSIST_DELAY_MS);
   }
 
+  /**
+   * Immediately flush any pending text to IndexedDB (cancels the debounce timer).
+   * @returns {Promise<void>}
+   */
   function flushPersistence() {
     clearPersistTimer();
     return persistText(text);
   }
 
+  /**
+   * Broadcast a version update to other tabs via BroadcastChannel.
+   * @param {Version} version
+   * @returns {void}
+   */
   function broadcastUpdate(version) {
     if (broadcastChannel) {
       broadcastChannel.postMessage(createSyncMessage(version));
     }
   }
 
+  /**
+   * Persist text to IndexedDB and broadcast the update. Chains onto persistChain
+   * to ensure writes are serialized. No-op if there are no pending edits.
+   * @param {string} nextText
+   * @returns {Promise<void>}
+   */
   function persistText(nextText) {
     if (!hasPendingEdits) return Promise.resolve();
 
@@ -338,6 +495,13 @@ import {
     return persistChain.catch(function () {});
   }
 
+  /**
+   * Update the editor text and state from a persisted record (IndexedDB or session draft).
+   * Preserves cursor position if the editor is focused.
+   * @param {string} nextText
+   * @param {Version} nextVersion
+   * @returns {void}
+   */
   function updateTextFromPersistence(nextText, nextVersion) {
     hasPendingEdits = false;
     persistedVersion = nextVersion;
@@ -364,6 +528,12 @@ import {
     }
   }
 
+  /**
+   * Re-read the document from IndexedDB and update the editor if a newer version exists.
+   * Skips update if there are pending local edits.
+   * @param {Version} [minimumVersion] - If provided, ignore records older than this
+   * @returns {Promise<void>}
+   */
   function refreshFromPersistence(minimumVersion) {
     return readRecord().then(function (record) {
       if (!record) return;
@@ -378,6 +548,11 @@ import {
     }).catch(function () {});
   }
 
+  /**
+   * Initialize text from persistence on app startup. Recovers from session draft
+   * if it's newer than the IndexedDB record, or falls back to IndexedDB.
+   * @returns {Promise<void>}
+   */
   function initPersistence() {
     var draft = readSessionDraft();
 
@@ -412,6 +587,10 @@ import {
 
   // ---- Copy feedback ----
 
+  /**
+   * Clear copy feedback styling and reset the copy button to its default state.
+   * @returns {void}
+   */
   function clearCopyFeedback() {
     if (copyFeedbackTimeout) { clearTimeout(copyFeedbackTimeout); copyFeedbackTimeout = 0; }
     btnCopy.classList.remove('copy-success', 'copy-error');
@@ -420,6 +599,11 @@ import {
     iconCopyFeedback.style.display = 'none';
   }
 
+  /**
+   * Show copy success or error feedback on the copy button, auto-clearing after COPY_FEEDBACK_MS.
+   * @param {boolean} success - Whether the copy operation succeeded
+   * @returns {void}
+   */
   function showCopyFeedback(success) {
     clearCopyFeedback();
     btnCopy.classList.add(success ? 'copy-success' : 'copy-error');
@@ -432,6 +616,10 @@ import {
     }, COPY_FEEDBACK_MS);
   }
 
+  /**
+   * Briefly flash the editor background to acknowledge a copy operation.
+   * @returns {void}
+   */
   function pulseEditor() {
     if (!editorEl.value) return;
     editorEl.classList.remove('editor-copy-feedback');
@@ -441,6 +629,10 @@ import {
 
   // ---- Event handlers ----
 
+  /**
+   * Handle textarea input: update state, create a new version, save draft, and schedule persist.
+   * @returns {void}
+   */
   function handleInput() {
     text = editorEl.value;
     hasPendingEdits = true;
@@ -449,6 +641,11 @@ import {
     schedulePersist(text);
   }
 
+  /**
+   * Handle cross-tab localStorage changes for theme, toolbar visibility, and font size.
+   * @param {StorageEvent} e
+   * @returns {void}
+   */
   function handleStorage(e) {
     if (e.storageArea !== localStorage || !e.key) return;
 
@@ -471,6 +668,10 @@ import {
     }
   }
 
+  /**
+   * Handle visibility change: flush on hide, refresh on show.
+   * @returns {void}
+   */
   function handleVisibilityChange() {
     if (document.visibilityState === 'hidden') {
       flushPersistence();
@@ -479,6 +680,12 @@ import {
     }
   }
 
+  /**
+   * Handle a BroadcastChannel message from another tab. Refreshes from
+   * IndexedDB if the incoming version is newer than what we have.
+   * @param {MessageEvent} event
+   * @returns {void}
+   */
   function handleBroadcast(event) {
     var msg = parseSyncMessage(event.data);
     if (!msg || msg.sourceTabId === tabId) return;
@@ -489,10 +696,20 @@ import {
 
   // ---- Dialog handling ----
 
+  /**
+   * Open a dialog as a modal.
+   * @param {HTMLDialogElement} dialog
+   * @returns {void}
+   */
   function openDialog(dialog) {
     dialog.showModal();
   }
 
+  /**
+   * Set up a dialog with backdrop-click-to-close and close button behavior.
+   * @param {HTMLDialogElement} dialog
+   * @returns {void}
+   */
   function setupDialog(dialog) {
     dialog.addEventListener('click', function (e) {
       if (e.target === dialog) dialog.close();
@@ -506,6 +723,10 @@ import {
 
   // ---- Toolbar toggle ----
 
+  /**
+   * Toggle toolbar visibility and persist the preference to localStorage.
+   * @returns {void}
+   */
   function toggleToolbar() {
     showToolbar = !showToolbar;
     saveStored(STORAGE_KEYS.toolbarIcons, showToolbar ? 'visible' : 'hidden');
@@ -514,6 +735,10 @@ import {
 
   // ---- Initialize ----
 
+  /**
+   * Initialize the application: apply state, bind events, load persisted text, and reveal UI.
+   * @returns {void}
+   */
   function init() {
     // Apply initial state
     applyTheme();
@@ -530,6 +755,11 @@ import {
     btnPrivacy.addEventListener('click', function () { openDialog(dialogPrivacy); });
     btnThanks.addEventListener('click', function () { openDialog(dialogThanks); });
 
+    /**
+     * Adjust the font size by a delta and persist the new value.
+     * @param {number} delta
+     * @returns {void}
+     */
     function changeFontSize(delta) {
       fontSize = clampFontSize(fontSize + delta);
       saveStored(STORAGE_KEYS.fontSize, String(fontSize));
@@ -593,7 +823,7 @@ import {
 
     // Initialize text from persistence, then reveal the UI
     initPersistence().then(function () {
-      return document.fonts ? document.fonts.ready : Promise.resolve();
+      return document.fonts ? document.fonts.ready.then(function () {}) : Promise.resolve();
     }).then(function () {
       applyEditorPadding();
       requestAnimationFrame(function () {

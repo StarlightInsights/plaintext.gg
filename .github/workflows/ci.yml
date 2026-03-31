@@ -26,8 +26,25 @@ jobs:
         with:
           node-version: 24
 
-      - name: Run tests
-        run: node --test tests/editor.test.js
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: E2E tests
+        run: pnpm run test:e2e
 
   deploy_bunny_storage:
     name: Deploy To Bunny Storage

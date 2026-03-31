@@ -3,13 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preinstall": "node -e \"if(!process.env.npm_execpath?.includes('pnpm')){console.error('Use pnpm, not npm.');process.exit(1)}\"",
     "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; node server.js",
     "test": "node --test tests/editor.test.js",
-    "test:e2e": "npx playwright test",
-    "test:all": "node --test tests/editor.test.js && npx playwright test",
+    "test:e2e": "pnpm exec playwright test",
+    "test:all": "node --test tests/editor.test.js && pnpm exec playwright test",
+    "typecheck": "tsc -p jsconfig.json --noEmit && tsc -p jsconfig.sw.json --noEmit && tsc -p jsconfig.server.json --noEmit",
+    "check": "pnpm run typecheck && pnpm run test:all",
     "deploy": "node scripts/deploy-bunny-storage.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.0"
+    "@playwright/test": "^1.0.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.0"
   }
 }
