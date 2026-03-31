@@ -2,64 +2,16 @@
 // plaintext.gg — zero-dependency vanilla JS
 // ============================================================
 
+import {
+  STORAGE_KEYS, SESSION_KEYS, DEFAULT_FONT_SIZE, FONT_STEP,
+  MIN_FONT_SIZE, MAX_FONT_SIZE, COPY_FEEDBACK_MS, PERSIST_DELAY_MS,
+  SYNC_CHANNEL, THEME_COLORS, clampFontSize, parseStoredFontSize,
+  normalizeTheme, normalizeToolbarVisibility, compareVersions,
+  isVersionNewer, toVersion, createRecord
+} from './shared.js';
+
 (function () {
   'use strict';
-
-  // ---- Constants ----
-
-  var STORAGE_KEYS = {
-    theme: 'plaintext:theme',
-    fontSize: 'plaintext:fontSize',
-    toolbarIcons: 'plaintext:toolbarIcons'
-  };
-
-  var SESSION_KEYS = {
-    textDraft: 'plaintext:textDraft'
-  };
-
-  var DEFAULT_FONT_SIZE = 14;
-  var FONT_STEP = 2;
-  var MIN_FONT_SIZE = 10;
-  var MAX_FONT_SIZE = 34;
-  var COPY_FEEDBACK_MS = 400;
-  var PERSIST_DELAY_MS = 300;
-  var SYNC_CHANNEL = 'plaintext:text-sync';
-  var THEME_COLORS = { light: '#fffdf7', dark: '#38342e' };
-
-  // ---- Utility functions ----
-
-  function clampFontSize(n) {
-    return Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, n));
-  }
-
-  function parseStoredFontSize(v) {
-    return v === null ? NaN : Number(v);
-  }
-
-  function normalizeTheme(v) {
-    return v === 'dark' ? 'dark' : 'light';
-  }
-
-  function normalizeToolbarVisibility(v) {
-    return v === 'visible';
-  }
-
-  function compareVersions(a, b) {
-    if (!a && !b) return 0;
-    if (!a) return -1;
-    if (!b) return 1;
-    if (a.updatedAt !== b.updatedAt) return a.updatedAt - b.updatedAt;
-    if (a.sourceTabId !== b.sourceTabId) return a.sourceTabId.localeCompare(b.sourceTabId);
-    return a.saveSequence - b.saveSequence;
-  }
-
-  function isVersionNewer(candidate, current) {
-    return compareVersions(candidate, current) > 0;
-  }
-
-  function toVersion(v) {
-    return { updatedAt: v.updatedAt, sourceTabId: v.sourceTabId, saveSequence: v.saveSequence };
-  }
 
   // ---- localStorage helpers ----
 
@@ -139,16 +91,6 @@
       req.onblocked = function () { resetDb(); reject(new Error('IndexedDB upgrade blocked.')); };
     });
     return dbPromise;
-  }
-
-  function createRecord(text, version) {
-    return {
-      id: RECORD_ID,
-      text: text,
-      updatedAt: version.updatedAt,
-      sourceTabId: version.sourceTabId,
-      saveSequence: version.saveSequence
-    };
   }
 
   function readRecord() {
@@ -588,17 +530,14 @@
     btnPrivacy.addEventListener('click', function () { openDialog(dialogPrivacy); });
     btnThanks.addEventListener('click', function () { openDialog(dialogThanks); });
 
-    btnFontUp.addEventListener('click', function () {
-      fontSize = clampFontSize(fontSize + FONT_STEP);
+    function changeFontSize(delta) {
+      fontSize = clampFontSize(fontSize + delta);
       saveStored(STORAGE_KEYS.fontSize, String(fontSize));
       applyFontSize();
-    });
+    }
 
-    btnFontDown.addEventListener('click', function () {
-      fontSize = clampFontSize(fontSize - FONT_STEP);
-      saveStored(STORAGE_KEYS.fontSize, String(fontSize));
-      applyFontSize();
-    });
+    btnFontUp.addEventListener('click', function () { changeFontSize(FONT_STEP); });
+    btnFontDown.addEventListener('click', function () { changeFontSize(-FONT_STEP); });
 
     btnSave.addEventListener('click', function () { downloadFile(text); });
 

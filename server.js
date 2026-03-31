@@ -2,6 +2,8 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs';
 import { join, extname } from 'node:path';
 
+const port = parseInt(process.argv[2] || '3000', 10);
+
 const TYPES = {
   html: 'text/html',
   css: 'text/css',
@@ -25,4 +27,4 @@ createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': TYPES[ext] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(3000, () => console.log('http://localhost:3000'));
+}).listen(port, () => console.log(`http://localhost:${port}`));

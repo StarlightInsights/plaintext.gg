@@ -216,12 +216,7 @@ textarea {
   color: var(--text-placeholder);
 }
 
-.btn-icon {
-  width: 32px;
-  height: 32px;
-  padding: 4px;
-}
-
+.btn-icon,
 .btn-font {
   width: 32px;
   height: 32px;
@@ -264,6 +259,10 @@ main {
 }
 
 .editor {
+  --editor-transition:
+    background-color var(--duration-slow) ease-out,
+    color var(--duration-slow) ease-out,
+    caret-color var(--duration-slow) ease-out;
   display: block;
   width: 100%;
   height: 100%;
@@ -276,15 +275,11 @@ main {
   color: var(--text-primary);
   caret-color: var(--text-primary);
   outline: none;
-  transition: background-color var(--duration-slow) ease-out,
-    color var(--duration-slow) ease-out,
-    caret-color var(--duration-slow) ease-out;
+  transition: var(--editor-transition);
 }
 
 .editor.motion {
-  transition: background-color var(--duration-slow) ease-out,
-    color var(--duration-slow) ease-out,
-    caret-color var(--duration-slow) ease-out,
+  transition: var(--editor-transition),
     padding-top var(--duration-slow) ease-out,
     padding-right var(--duration-slow) ease-out;
 }

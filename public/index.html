@@ -19,14 +19,13 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <meta name="theme-color" content="#fffdf7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#38342e" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#fffdf7" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="stylesheet" href="/app.css" />
     <style>
-      html { background-color: #fffdf7; color-scheme: light; }
-      html[data-theme="dark"] { background-color: #38342e; color-scheme: dark; }
+      html { color-scheme: light; }
+      html[data-theme="dark"] { color-scheme: dark; }
       body { min-height: 100%; margin: 0; background: transparent; }
     </style>
     <script>
@@ -217,6 +216,6 @@
       </dialog>
 
     </div>
-    <script src="/app.js"></script>
+    <script type="module" src="/app.js"></script>
   </body>
 </html>
