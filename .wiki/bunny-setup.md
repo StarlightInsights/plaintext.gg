@@ -66,15 +66,17 @@ Actions:
 - `Browser Cache Header (Cache-Control) Override` -> `Cache-Control: no-store`
 - `Origin Override Cache Time` -> `0 seconds`
 
-### 2. Cache fonts and immutable CSS and JS
+### 2. Cache fonts and static CSS and JS
 
 Purpose:
 
-- allow long-lived caching for hashed build assets and self-hosted fonts
+- allow long-lived caching for CSS, JS, and self-hosted fonts
+- these files change only on deploy and the CDN cache is purged after each deploy
 
 Conditions:
 
-- `Request URL` matches `/_app/immutable/*`
+- `Request URL` matches `/*.css`
+- `Request URL` matches `/*.js`
 - `Request URL` matches `/fonts/*`
 
 Actions:
@@ -106,19 +108,18 @@ This is especially important after:
 
 - changing HTML cache behavior
 - changing asset cache rules
-- deploying a new build after stale-cache issues
+- deploying updates after stale-cache issues
 
 ## GitHub Actions Deployment
 
-Deployment is handled by the GitHub Actions workflow at [`.github/workflows/ci.yml`](/Users/carlsson/Desktop/GitHub/Plaintext.gg/.github/workflows/ci.yml).
+Deployment is handled by the GitHub Actions workflow at `.github/workflows/ci.yml`.
 
 On pushes to `main`, the workflow:
 
-1. runs verification
-2. builds the static site
-3. deploys the `build/` directory to Bunny Storage
+1. runs unit tests
+2. deploys the `public/` directory to Bunny Storage (no build step)
 
-The deploy step runs [`scripts/deploy-bunny-storage.mjs`](/Users/carlsson/Desktop/GitHub/Plaintext.gg/scripts/deploy-bunny-storage.mjs).
+The deploy step runs `scripts/deploy-bunny-storage.mjs`.
 
 Workflow concurrency behavior:
 
@@ -145,21 +146,19 @@ Do not commit the API key or storage password.
 
 The current deploy script does the following:
 
-1. uploads the local `build/` output
+1. uploads the `public/` directory directly (no build step needed)
 2. deletes stale remote files that are no longer present locally
 3. purges the Bunny pull zone cache
 
 Relevant environment defaults in the script:
 
-- source directory: `build`
+- source directory: `public`
 - storage prefix: empty unless `BUNNY_STORAGE_PREFIX` is set
-
-The deploy script also skips the `.wiki` directory if it is ever inside the configured source tree.
 
 ## Notes
 
-- This project is currently using Bunny CDN in front of Bunny Storage.
+- This project is a vanilla HTML/CSS/JS site with no build step.
 - HTML is intended to be non-cacheable.
-- Immutable SvelteKit assets under `/_app/immutable/` are intended to be cached aggressively.
+- CSS and JS files (`app.css`, `app.js`, `shared.js`, `sw.js`) are cached aggressively; the CDN cache is purged on every deploy.
 - Fonts under `/fonts/` are intended to be cached aggressively.
 - Top-level PNG and SVG assets currently use a shorter cache rule for flexibility.

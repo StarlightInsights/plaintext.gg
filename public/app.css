@@ -1,0 +1,487 @@
+@font-face {
+  font-family: "CommitMono-300";
+  src: url("/fonts/CommitMono-300-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono-250";
+  src: url("/fonts/CommitMono-250-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 250;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono-200";
+  src: url("/fonts/CommitMono-200-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+}
+
+/* ---- Design tokens ---- */
+
+:root {
+  --font-main: "CommitMono-300", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-header: "CommitMono-250", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-dialog: "CommitMono-200", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --icon-size: 1.25rem;
+  --leading: 1.65;
+  --duration: 160ms;
+  --duration-slow: 180ms;
+  --duration-fast: 80ms;
+}
+
+/* ---- Light theme (default) ---- */
+
+.app-shell {
+  --bg: oklch(1 0 89.88);
+  --panel-bg: oklch(1 0 89.88);
+  --border: oklch(0.922 0 89.88);
+  --panel-border: oklch(0.8 0 89.88);
+  --text-primary: oklch(0.218 0 89.88);
+  --text-muted: oklch(0.50 0 89.88);
+  --text-secondary: oklch(0.683 0 89.88);
+  --text-placeholder: oklch(0.845 0 89.88);
+  --feedback-error: oklch(0.58 0.18 23);
+  --overlay: oklch(0 0 0 / 0.4);
+}
+
+/* ---- Dark theme ---- */
+
+html[data-theme="dark"] .app-shell,
+.app-shell[data-theme="dark"] {
+  --bg: oklch(0.218 0 89.88);
+  --panel-bg: oklch(0.252 0 89.88);
+  --border: oklch(0.285 0 89.88);
+  --panel-border: oklch(0.321 0 89.88);
+  --text-primary: oklch(0.907 0 89.88);
+  --text-muted: oklch(0.51 0 89.88);
+  --text-secondary: oklch(0.51 0 89.88);
+  --text-placeholder: oklch(0.387 0 89.88);
+  --feedback-error: oklch(0.72 0.17 23);
+  --overlay: oklch(0 0 0 / 0.667);
+}
+
+/* ---- Reset ---- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+/* ---- App shell ---- */
+
+.app-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  transition: background-color var(--duration-slow) ease-out, color var(--duration-slow) ease-out;
+}
+
+.app-shell.loading {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ---- Header / toolbar ---- */
+
+.toolbar {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  row-gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg);
+  font-family: var(--font-header);
+  font-weight: 300;
+  font-size: 0.9375rem;
+  transition: background-color var(--duration-slow) ease-out,
+    border-color var(--duration-slow) ease-out,
+    color var(--duration-slow) ease-out;
+}
+
+.toolbar.hidden {
+  display: none;
+}
+
+.toolbar.slide-in {
+  animation: toolbar-slide-in var(--duration-slow) ease-out;
+}
+
+@keyframes toolbar-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toolbar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-controls {
+  margin-inline-start: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.font-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---- Toggle button wrappers ---- */
+
+.toggle-desktop {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 30;
+}
+
+.toggle-mobile {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 30;
+}
+
+/* ---- Buttons ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color var(--duration) ease-out, opacity var(--duration) ease-out;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  color: var(--text-primary);
+}
+
+.btn:focus-visible {
+  outline: none;
+}
+
+.btn:disabled {
+  cursor: default;
+  color: var(--text-placeholder);
+}
+
+.btn-icon,
+.btn-font {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+}
+
+.btn-float {
+  opacity: 0.6;
+}
+
+.btn-float:hover,
+.btn-float:focus-visible {
+  opacity: 1;
+}
+
+.icon {
+  pointer-events: none;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+/* Copy feedback states */
+
+.btn.copy-success {
+  color: var(--text-primary);
+}
+
+.btn.copy-error {
+  color: var(--feedback-error);
+}
+
+/* ---- Main / textarea ---- */
+
+main {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor {
+  --editor-transition:
+    background-color var(--duration-slow) ease-out,
+    color var(--duration-slow) ease-out,
+    caret-color var(--duration-slow) ease-out;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  resize: none;
+  border: 0;
+  background: transparent;
+  padding: 12px;
+  line-height: var(--leading);
+  color: var(--text-primary);
+  caret-color: var(--text-primary);
+  outline: none;
+  transition: var(--editor-transition);
+}
+
+.editor.motion {
+  transition: var(--editor-transition),
+    padding-top var(--duration-slow) ease-out,
+    padding-right var(--duration-slow) ease-out;
+}
+
+.editor::placeholder {
+  color: var(--text-placeholder);
+}
+
+.editor-copy-feedback {
+  animation: editor-copy-pulse 620ms ease-in-out;
+}
+
+@keyframes editor-copy-pulse {
+  0% { opacity: 1; }
+  32% { opacity: 0.24; }
+  100% { opacity: 1; }
+}
+
+/* ---- Dialogs ---- */
+
+.dialog {
+  margin: auto;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 1rem);
+  overflow-y: auto;
+  border: 1px solid var(--panel-border);
+  background-color: var(--panel-bg);
+  padding: 0;
+  color: var(--text-primary);
+  outline: none;
+  opacity: 0;
+  transition:
+    opacity 100ms ease-in,
+    overlay 100ms ease-in allow-discrete,
+    display 100ms ease-in allow-discrete,
+    background-color var(--duration-slow) ease-out,
+    border-color var(--duration-slow) ease-out,
+    color var(--duration-slow) ease-out;
+}
+
+.dialog[open] {
+  opacity: 1;
+  transition:
+    opacity var(--duration) ease-out,
+    overlay var(--duration) ease-out allow-discrete,
+    display var(--duration) ease-out allow-discrete,
+    background-color var(--duration-slow) ease-out,
+    border-color var(--duration-slow) ease-out,
+    color var(--duration-slow) ease-out;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+.dialog::backdrop {
+  background-color: var(--overlay);
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) ease-in,
+    overlay var(--duration-fast) ease-in allow-discrete,
+    display var(--duration-fast) ease-in allow-discrete;
+}
+
+.dialog[open]::backdrop {
+  opacity: 1;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+.dialog-inner {
+  display: grid;
+  gap: 20px;
+  padding: 16px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialog-title {
+  margin: 0;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.dialog-close {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--duration-slow) ease-out;
+}
+
+.dialog-close:hover,
+.dialog-close:focus-visible {
+  color: var(--text-primary);
+}
+
+.dialog-close:focus-visible {
+  outline: none;
+}
+
+.dialog-body {
+  display: grid;
+  gap: 16px;
+  line-height: var(--leading);
+  color: var(--text-primary);
+  font-family: var(--font-dialog);
+}
+
+.dialog-body p {
+  margin: 0;
+}
+
+.dialog-body a,
+.dialog-body a:visited {
+  color: var(--text-muted);
+  transition: color var(--duration-slow) ease-out;
+}
+
+.dialog-body a:hover,
+.dialog-body a:focus-visible {
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* ---- Responsive: mobile ---- */
+
+@media (max-width: 639px) {
+  .toolbar {
+    align-items: flex-start;
+    padding: 12px;
+    font-size: 1rem;
+  }
+
+  .toolbar-controls {
+    margin-inline-start: 0;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .font-size-controls {
+    gap: 2px;
+  }
+
+  .btn-icon,
+  .btn-font {
+    min-height: 44px;
+    min-width: 2.75rem;
+    padding: 8px;
+  }
+
+
+  .toggle-desktop {
+    display: none;
+  }
+
+  .dialog {
+    width: min(32rem, calc(100vw - 1rem));
+  }
+
+  .editor {
+    padding: 12px;
+  }
+}
+
+@media (min-width: 640px) {
+  .toolbar {
+    padding-right: 56px;
+  }
+
+  .toolbar-controls {
+    padding-inline-start: 12px;
+  }
+
+  .mobile-hide-btn,
+  .toggle-mobile {
+    display: none;
+  }
+
+  .editor {
+    padding: 16px;
+  }
+}
+
+/* ---- Reduced motion ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -4,7 +4,7 @@ import path from 'node:path';
 const endpoint = process.env.BUNNY_STORAGE_ENDPOINT;
 const storageZone = process.env.BUNNY_STORAGE_ZONE;
 const storageAccessKey = process.env.BUNNY_STORAGE_PASSWORD;
-const sourceDir = process.env.BUNNY_SOURCE_DIR ?? 'build';
+const sourceDir = process.env.BUNNY_SOURCE_DIR ?? 'public';
 const prefix = normalizeRemotePath(process.env.BUNNY_STORAGE_PREFIX ?? '');
 const pullZoneId = process.env.BUNNY_PULL_ZONE_ID;
 const apiKey = process.env.BUNNY_API_KEY;
@@ -204,6 +204,8 @@ function getContentType(filePath) {
 			return 'image/webp';
 		case '.woff2':
 			return 'font/woff2';
+		case '.webmanifest':
+			return 'application/manifest+json; charset=utf-8';
 		case '.xml':
 			return 'application/xml; charset=utf-8';
 		case '.map':

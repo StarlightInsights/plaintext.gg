@@ -1,8 +1,5 @@
 .DS_Store
 Thumbs.db
 node_modules/
-.svelte-kit/
-build/
-.pnpm-store/
-coverage/
-vite.config.timestamp-*.mjs
+test-results/
+.env
