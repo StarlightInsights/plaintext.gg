@@ -1,39 +1,15 @@
 {
   "name": "plaintext-gg",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
-  "packageManager": "pnpm@10.33.0",
-  "engines": {
-    "node": "24.x",
-    "pnpm": "10.x"
-  },
   "scripts": {
-    "dev": "vp dev",
-    "build": "vp build",
-    "preview": "vp preview",
-    "check": "svelte-kit sync && svelte-check --fail-on-warnings && vp build",
-    "lint:md": "markdownlint-cli2 README.md .wiki/**/*.md",
-    "test": "node --experimental-strip-types --test"
+    "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; node server.js",
+    "test": "node --test tests/editor.test.js",
+    "test:e2e": "npx playwright test",
+    "test:all": "node --test tests/editor.test.js && npx playwright test",
+    "deploy": "node scripts/deploy-bunny-storage.mjs"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "3.0.10",
-    "@sveltejs/kit": "2.55.0",
-    "@sveltejs/vite-plugin-svelte": "7.0.0",
-    "@tailwindcss/vite": "4.2.2",
-    "@types/node": "25.5.0",
-    "@vite-pwa/sveltekit": "^1.1.0",
-    "@voidzero-dev/vite-plus-core": "0.1.14",
-    "csstype": "^3.2.3",
-    "markdownlint-cli2": "^0.22.0",
-    "svelte": "5.55.0",
-    "svelte-check": "4.4.5",
-    "tailwindcss": "4.2.2",
-    "typescript": "6.0.2",
-    "vite": "8.0.3",
-    "vite-plus": "0.1.14"
-  },
-  "dependencies": {
-    "workbox-window": "^7.4.0"
+    "@playwright/test": "^1.58.0"
   }
 }

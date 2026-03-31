@@ -1,0 +1,736 @@
+import { test, expect } from '@playwright/test';
+
+// Helper: clear all browser storage before each test
+test.beforeEach(async ({ page, context }) => {
+  // Clear IndexedDB, localStorage, sessionStorage
+  await context.clearCookies();
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase('plaintext');
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject();
+      req.onblocked = () => resolve(); // best-effort
+    });
+  });
+});
+
+// ============================================================
+// 1. PAGE LOAD & INITIAL STATE
+// ============================================================
+
+test.describe('Page load', () => {
+  test('renders the app shell and becomes visible', async ({ page }) => {
+    await page.goto('/');
+    const shell = page.locator('#app-shell');
+    await expect(shell).toBeVisible();
+    await expect(shell).not.toHaveClass(/loading/);
+  });
+
+  test('has correct title and meta description', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveTitle('plaintext.gg');
+    const desc = page.locator('meta[name="description"]');
+    await expect(desc).toHaveAttribute('content', /distraction-free writing tool/);
+  });
+
+  test('editor textarea is present and empty by default', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    await expect(editor).toBeVisible();
+    await expect(editor).toHaveValue('');
+  });
+
+  test('editor has the correct placeholder', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('placeholder', 'just plain text...');
+  });
+
+  test('default theme is light', async ({ page }) => {
+    await page.goto('/');
+    const html = page.locator('html');
+    await expect(html).toHaveAttribute('data-theme', 'light');
+  });
+
+  test('default font size is 14px', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    const fontSize = await editor.evaluate((el) => el.style.fontSize);
+    expect(fontSize).toBe('14px');
+  });
+
+  test('toolbar is hidden by default (no stored value)', async ({ page }) => {
+    await page.goto('/');
+    const toolbar = page.locator('#toolbar');
+    await expect(toolbar).toHaveClass(/hidden/);
+  });
+});
+
+// ============================================================
+// 2. TEXT EDITING & PERSISTENCE
+// ============================================================
+
+test.describe('Text editing', () => {
+  test('typing updates the textarea', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    await editor.fill('hello world');
+    await expect(editor).toHaveValue('hello world');
+  });
+
+  test('text persists across page reload via IndexedDB', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    await editor.fill('persisted text');
+    // Trigger input event explicitly
+    await editor.dispatchEvent('input');
+    // Wait for debounced persistence (300ms + some margin)
+    await page.waitForTimeout(500);
+    // Reload and check
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    await expect(page.locator('#editor')).toHaveValue('persisted text');
+  });
+
+  test('text persists via sessionStorage crash recovery', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    await editor.fill('session draft');
+    await editor.dispatchEvent('input');
+    // Don't wait for debounce - session draft should be immediate
+    await page.waitForTimeout(50);
+    // Verify sessionStorage has the draft
+    const hasDraft = await page.evaluate(() => {
+      return sessionStorage.getItem('plaintext:textDraft') !== null;
+    });
+    expect(hasDraft).toBe(true);
+  });
+
+  test('empty text is valid and persists', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    await editor.fill('something');
+    await editor.dispatchEvent('input');
+    await page.waitForTimeout(500);
+    await editor.fill('');
+    await editor.dispatchEvent('input');
+    await page.waitForTimeout(500);
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    await expect(page.locator('#editor')).toHaveValue('');
+  });
+});
+
+// ============================================================
+// 3. THEME TOGGLE
+// ============================================================
+
+test.describe('Theme toggle', () => {
+  test('clicking theme button toggles to dark', async ({ page }) => {
+    await page.goto('/');
+    // Show toolbar first
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-theme').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('clicking theme button twice returns to light', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-theme').click();
+    await page.locator('#btn-theme').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+
+  test('theme persists across reload', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-theme').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('theme toggle updates aria-pressed', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const btn = page.locator('#btn-theme');
+    await expect(btn).toHaveAttribute('aria-pressed', 'false');
+    await btn.click();
+    await expect(btn).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('dark theme shows dark icon, light theme shows light icon', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    // Light mode: light icon visible
+    await expect(page.locator('#icon-theme-light')).toBeVisible();
+    await expect(page.locator('#icon-theme-dark')).toBeHidden();
+    // Switch to dark
+    await page.locator('#btn-theme').click();
+    await expect(page.locator('#icon-theme-light')).toBeHidden();
+    await expect(page.locator('#icon-theme-dark')).toBeVisible();
+  });
+
+  test('theme color meta tags update with theme', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-theme').click();
+    const metaContent = await page.locator('meta[name="theme-color"]').first().getAttribute('content');
+    expect(metaContent).toBe('#38342e');
+  });
+});
+
+// ============================================================
+// 4. FONT SIZE CONTROLS
+// ============================================================
+
+test.describe('Font size controls', () => {
+  test('increase font size button works', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const editor = page.locator('#editor');
+    const before = await editor.evaluate((el) => parseInt(el.style.fontSize));
+    await page.locator('#btn-font-up').click();
+    const after = await editor.evaluate((el) => parseInt(el.style.fontSize));
+    expect(after).toBe(before + 2);
+  });
+
+  test('decrease font size button works', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const editor = page.locator('#editor');
+    const before = await editor.evaluate((el) => parseInt(el.style.fontSize));
+    await page.locator('#btn-font-down').click();
+    const after = await editor.evaluate((el) => parseInt(el.style.fontSize));
+    expect(after).toBe(before - 2);
+  });
+
+  test('font size cannot go below minimum (10px)', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    // Click down until disabled
+    const btn = page.locator('#btn-font-down');
+    while (!(await btn.isDisabled())) {
+      await btn.click();
+    }
+    const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
+    expect(size).toBe(10);
+    await expect(btn).toBeDisabled();
+  });
+
+  test('font size cannot go above maximum (34px)', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const btn = page.locator('#btn-font-up');
+    while (!(await btn.isDisabled())) {
+      await btn.click();
+    }
+    const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
+    expect(size).toBe(34);
+    await expect(btn).toBeDisabled();
+  });
+
+  test('font size persists across reload', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-font-up').click();
+    await page.locator('#btn-font-up').click();
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
+    expect(size).toBe(18);
+  });
+});
+
+// ============================================================
+// 5. TOOLBAR VISIBILITY
+// ============================================================
+
+test.describe('Toolbar visibility', () => {
+  test('desktop toggle shows the toolbar', async ({ page }) => {
+    await page.goto('/');
+    const toolbar = page.locator('#toolbar');
+    await expect(toolbar).toHaveClass(/hidden/);
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(toolbar).not.toHaveClass(/hidden/);
+  });
+
+  test('desktop toggle hides the toolbar', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#toolbar')).toHaveClass(/hidden/);
+  });
+
+  test('toolbar visibility persists across reload', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+  });
+
+  test('desktop toggle shows eye-open when toolbar visible', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#icon-eye-open')).toBeVisible();
+    await expect(page.locator('#icon-eye-closed')).toBeHidden();
+  });
+
+  test('desktop toggle shows eye-closed when toolbar hidden', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#icon-eye-open')).toBeHidden();
+    await expect(page.locator('#icon-eye-closed')).toBeVisible();
+  });
+
+  test('toggle updates aria-pressed', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#btn-toggle-desktop');
+    // Toolbar hidden -> pressed=true (meaning "toolbar is hidden")
+    await expect(btn).toHaveAttribute('aria-pressed', 'true');
+    await btn.click();
+    // Toolbar shown -> pressed=false
+    await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('editor padding adjusts when toolbar visibility changes', async ({ page }) => {
+    await page.goto('/');
+    const editor = page.locator('#editor');
+    // Toolbar hidden -> 40px top padding
+    const hiddenPadding = await editor.evaluate((el) => parseInt(el.style.paddingTop));
+    expect(hiddenPadding).toBe(40);
+    // Show toolbar
+    await page.locator('#btn-toggle-desktop').click();
+    await page.waitForTimeout(50);
+    const visiblePadding = await editor.evaluate((el) => parseInt(el.style.paddingTop));
+    expect(visiblePadding).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================
+// 6. DIALOGS
+// ============================================================
+
+test.describe('Dialogs', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    // Show toolbar so dialog buttons are accessible
+    await page.locator('#btn-toggle-desktop').click();
+  });
+
+  test('info dialog opens and closes', async ({ page }) => {
+    await page.locator('#btn-info').click();
+    const dialog = page.locator('#dialog-info');
+    await expect(dialog).toBeVisible();
+    // Close via the x button
+    await dialog.locator('.dialog-close').click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('privacy dialog opens and closes', async ({ page }) => {
+    await page.locator('#btn-privacy').click();
+    const dialog = page.locator('#dialog-privacy');
+    await expect(dialog).toBeVisible();
+    await dialog.locator('.dialog-close').click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('thanks dialog opens and closes', async ({ page }) => {
+    await page.locator('#btn-thanks').click();
+    const dialog = page.locator('#dialog-thanks');
+    await expect(dialog).toBeVisible();
+    await dialog.locator('.dialog-close').click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('info dialog has correct title', async ({ page }) => {
+    await page.locator('#btn-info').click();
+    await expect(page.locator('#dialog-info-title')).toHaveText('why plaintext.gg?');
+  });
+
+  test('privacy dialog has correct title', async ({ page }) => {
+    await page.locator('#btn-privacy').click();
+    await expect(page.locator('#dialog-privacy-title')).toHaveText('privacy');
+  });
+
+  test('thanks dialog has correct title', async ({ page }) => {
+    await page.locator('#btn-thanks').click();
+    await expect(page.locator('#dialog-thanks-title')).toHaveText('thanks');
+  });
+
+  test('dialog closes on backdrop click', async ({ page }) => {
+    await page.locator('#btn-info').click();
+    const dialog = page.locator('#dialog-info');
+    await expect(dialog).toBeVisible();
+    // Click on the dialog element at viewport edge (outside the dialog box = backdrop)
+    // The dialog::backdrop covers the whole viewport, so clicking at (2, 2) hits the backdrop
+    const box = await dialog.boundingBox();
+    // Click above the dialog box to hit the backdrop
+    await page.mouse.click(2, 2);
+    await page.waitForTimeout(200);
+    const isOpen = await dialog.evaluate((el) => el.open);
+    expect(isOpen).toBe(false);
+  });
+
+  test('info dialog contains open-source link', async ({ page }) => {
+    await page.locator('#btn-info').click();
+    const link = page.locator('#dialog-info-desc a[href*="github.com"]');
+    await expect(link).toBeVisible();
+    await expect(link).toHaveText('open-source');
+  });
+
+  test('thanks dialog contains Commit Mono link', async ({ page }) => {
+    await page.locator('#btn-thanks').click();
+    const link = page.locator('#dialog-thanks-desc a[href*="commitmono"]');
+    await expect(link).toBeVisible();
+  });
+
+  test('thanks dialog contains Phosphor link', async ({ page }) => {
+    await page.locator('#btn-thanks').click();
+    const link = page.locator('#dialog-thanks-desc a[href*="phosphoricons"]');
+    await expect(link).toBeVisible();
+  });
+
+  test('dialog has correct aria attributes', async ({ page }) => {
+    const dialog = page.locator('#dialog-info');
+    await expect(dialog).toHaveAttribute('aria-labelledby', 'dialog-info-title');
+    await expect(dialog).toHaveAttribute('aria-describedby', 'dialog-info-desc');
+  });
+});
+
+// ============================================================
+// 7. COPY BUTTON
+// ============================================================
+
+test.describe('Copy button', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+  });
+
+  test('copy button has correct initial aria-label', async ({ page }) => {
+    await expect(page.locator('#btn-copy')).toHaveAttribute('aria-label', 'Copy plain text');
+  });
+
+  test('copy shows feedback icon on click', async ({ page }) => {
+    // Grant clipboard permissions
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('#editor').fill('test copy');
+    await page.locator('#editor').dispatchEvent('input');
+    await page.locator('#btn-copy').click();
+    // The feedback icon should be shown
+    await expect(page.locator('#icon-copy-feedback')).toBeVisible();
+  });
+
+  test('copy feedback clears on mouseleave', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('#editor').fill('test');
+    await page.locator('#editor').dispatchEvent('input');
+    await page.locator('#btn-copy').click();
+    await expect(page.locator('#icon-copy-feedback')).toBeVisible();
+    // Move mouse away
+    await page.locator('#btn-copy').dispatchEvent('mouseleave');
+    await expect(page.locator('#icon-copy')).toBeVisible();
+  });
+
+  test('copy feedback auto-clears after timeout', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('#editor').fill('test');
+    await page.locator('#editor').dispatchEvent('input');
+    await page.locator('#btn-copy').click();
+    await expect(page.locator('#icon-copy-feedback')).toBeVisible();
+    // Wait for auto-clear (400ms + margin)
+    await page.waitForTimeout(600);
+    await expect(page.locator('#icon-copy')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 8. SAVE BUTTON
+// ============================================================
+
+test.describe('Save button', () => {
+  test('save button has correct aria-label', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#btn-save')).toHaveAttribute('aria-label', 'Save as plaintext file');
+  });
+
+  test('save triggers a download', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#editor').fill('download me');
+    await page.locator('#editor').dispatchEvent('input');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('#btn-save').click(),
+    ]);
+    expect(download.suggestedFilename()).toBe('plaintext.txt');
+  });
+});
+
+// ============================================================
+// 9. ACCESSIBILITY
+// ============================================================
+
+test.describe('Accessibility', () => {
+  test('all toolbar buttons have aria-labels', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const buttons = page.locator('.toolbar button');
+    const count = await buttons.count();
+    for (let i = 0; i < count; i++) {
+      const btn = buttons.nth(i);
+      const label = await btn.getAttribute('aria-label');
+      expect(label, `Button ${i} should have aria-label`).toBeTruthy();
+    }
+  });
+
+  test('editor has aria-label', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('aria-label', 'Plain text editor');
+  });
+
+  test('all SVG icons have aria-hidden', async ({ page }) => {
+    await page.goto('/');
+    const svgs = page.locator('svg.icon');
+    const count = await svgs.count();
+    for (let i = 0; i < count; i++) {
+      await expect(svgs.nth(i)).toHaveAttribute('aria-hidden', 'true');
+    }
+  });
+
+  test('nav has correct aria-label', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.toolbar-nav')).toHaveAttribute('aria-label', 'Info');
+  });
+
+  test('controls group has correct aria-label', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.toolbar-controls')).toHaveAttribute('aria-label', 'Editor controls');
+  });
+
+  test('font size controls group has correct aria-label', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.font-size-controls')).toHaveAttribute('aria-label', 'Font size controls');
+  });
+
+  test('dialogs have aria-labelledby and aria-describedby', async ({ page }) => {
+    await page.goto('/');
+    for (const id of ['dialog-info', 'dialog-privacy', 'dialog-thanks']) {
+      const dialog = page.locator(`#${id}`);
+      await expect(dialog).toHaveAttribute('aria-labelledby', `${id}-title`);
+      await expect(dialog).toHaveAttribute('aria-describedby', `${id}-desc`);
+    }
+  });
+});
+
+// ============================================================
+// 10. BROWSER-QUIETING ATTRIBUTES
+// ============================================================
+
+test.describe('Browser-quieting attributes', () => {
+  test('editor suppresses autocorrect', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('autocorrect', 'off');
+  });
+
+  test('editor suppresses spellcheck', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('spellcheck', 'false');
+  });
+
+  test('editor suppresses autocomplete', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('autocomplete', 'off');
+  });
+
+  test('editor suppresses Grammarly', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('data-gramm', 'false');
+  });
+
+  test('editor suppresses 1Password', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('data-1p-ignore', 'true');
+  });
+
+  test('editor suppresses LastPass', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('data-lpignore', 'true');
+  });
+});
+
+// ============================================================
+// 11. CROSS-TAB SYNC VIA LOCALSTORAGE
+// ============================================================
+
+test.describe('Cross-tab localStorage sync', () => {
+  test('theme syncs via storage event', async ({ page }) => {
+    await page.goto('/');
+    // Simulate another tab changing the theme
+    await page.evaluate(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'plaintext:theme',
+        newValue: 'dark',
+        storageArea: localStorage,
+      }));
+    });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('font size syncs via storage event', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'plaintext:fontSize',
+        newValue: '20',
+        storageArea: localStorage,
+      }));
+    });
+    const size = await page.locator('#editor').evaluate((el) => el.style.fontSize);
+    expect(size).toBe('20px');
+  });
+
+  test('toolbar visibility syncs via storage event', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'plaintext:toolbarIcons',
+        newValue: 'visible',
+        storageArea: localStorage,
+      }));
+    });
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+  });
+});
+
+// ============================================================
+// 12. PWA MANIFEST
+// ============================================================
+
+test.describe('PWA', () => {
+  test('manifest link is present', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
+  });
+
+  test('apple-touch-icon is present', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/apple-touch-icon.png');
+  });
+
+  test('manifest file is valid JSON', async ({ page }) => {
+    const response = await page.goto('/manifest.webmanifest');
+    const json = await response.json();
+    expect(json.name).toBe('plaintext.gg');
+    expect(json.short_name).toBe('plaintext');
+    expect(json.display).toBe('standalone');
+    expect(json.icons.length).toBe(3);
+  });
+});
+
+// ============================================================
+// 13. STATIC ASSETS
+// ============================================================
+
+test.describe('Static assets', () => {
+  test('CSS loads', async ({ page }) => {
+    const response = await page.goto('/app.css');
+    expect(response.status()).toBe(200);
+  });
+
+  test('JS loads', async ({ page }) => {
+    const response = await page.goto('/app.js');
+    expect(response.status()).toBe(200);
+  });
+
+  test('favicon loads', async ({ page }) => {
+    const response = await page.goto('/favicon.ico');
+    expect(response.status()).toBe(200);
+  });
+
+  test('SVG icon loads', async ({ page }) => {
+    const response = await page.goto('/icon.svg');
+    expect(response.status()).toBe(200);
+  });
+});
+
+// ============================================================
+// 14. EDITOR BEHAVIOR ATTRIBUTES
+// ============================================================
+
+test.describe('Editor behavior', () => {
+  test('editor has inputmode=text', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('inputmode', 'text');
+  });
+
+  test('editor has enterkeyhint=enter', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('enterkeyhint', 'enter');
+  });
+
+  test('editor has translate=no', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#editor')).toHaveAttribute('translate', 'no');
+  });
+});
+
+// ============================================================
+// 15. COMBINED FEATURE INTERACTIONS
+// ============================================================
+
+test.describe('Combined interactions', () => {
+  test('text persists after theme change', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const editor = page.locator('#editor');
+    await editor.fill('before theme change');
+    await editor.dispatchEvent('input');
+    await page.waitForTimeout(500);
+    await page.locator('#btn-theme').click();
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    await expect(page.locator('#editor')).toHaveValue('before theme change');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('font size and theme persist together', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-theme').click();
+    await page.locator('#btn-font-up').click();
+    await page.locator('#btn-font-up').click();
+    await page.locator('#btn-font-up').click();
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
+    expect(size).toBe(20);
+  });
+
+  test('toolbar state, theme, and text all persist', async ({ page }) => {
+    await page.goto('/');
+    // Show toolbar
+    await page.locator('#btn-toggle-desktop').click();
+    // Set dark theme
+    await page.locator('#btn-theme').click();
+    // Type text
+    await page.locator('#editor').fill('everything persists');
+    await page.locator('#editor').dispatchEvent('input');
+    await page.waitForTimeout(500);
+    // Reload
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    // All three should persist
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('#editor')).toHaveValue('everything persists');
+  });
+});

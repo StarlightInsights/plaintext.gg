@@ -13,53 +13,76 @@ Sometimes you just want plain text.
 - Syncs text across open tabs with `BroadcastChannel`
 - Syncs theme and font size across open windows through the browser `storage` event
 - Uses self-hosted Commit Mono webfonts
+- Works offline as an installable PWA
 
 ## Project Structure
 
-- `src/routes/+page.svelte`: the application page
-- `src/lib/editor.ts`: small shared editor utilities covered by tests
-- `src/lib/text-persistence.ts`: the IndexedDB wrapper for the current text document
-- `src/app.css`: Tailwind import plus the app's global styles and local font faces
-- `static/`: static assets served with the site, including the favicon, license file, and the full bundled Commit Mono font family
-- `.github/workflows/ci.yml`: CI plus Bunny Storage deployment on `main`
+```
+public/                 # Deployable static site (no build step)
+  index.html            # Single-page app shell with inline SVGs
+  app.css               # Hand-written CSS with design tokens and themes
+  app.js                # All application logic (persistence, sync, UI)
+  sw.js                 # Service worker for offline support
+  manifest.webmanifest  # PWA manifest
+  fonts/                # Commit Mono (3 weights, Regular only)
+  icon.svg, *.png       # App icons and favicon
+tests/
+  editor.test.js        # Unit tests for pure utility functions
+  app.spec.js           # Playwright e2e tests (75 tests)
+scripts/
+  deploy-bunny-storage.mjs  # Zero-dependency Bunny CDN deploy script
+.github/workflows/
+  ci.yml                # CI pipeline and deploy on main
+```
 
 ## Local Development
 
-This project uses SvelteKit, Tailwind CSS v4, TypeScript, `adapter-static`, Node 24, pnpm, and Vite+ for the dev/build pipeline.
+No framework, no bundler, no build step. Just serve the `public/` directory:
 
 ```sh
 git clone https://github.com/StarlightInsights/Plaintext.gg.git
 cd Plaintext.gg
-pnpm install
-pnpm dev
+node -e "
+  const h=require('http'),f=require('fs'),p=require('path');
+  const m={html:'text/html',css:'text/css',js:'text/javascript',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',ico:'image/x-icon',woff2:'font/woff2',txt:'text/plain'};
+  h.createServer((q,r)=>{let u=q.url.split('?')[0];if(u==='/')u='/index.html';f.readFile(p.join('public',u),(e,d)=>{if(e){r.writeHead(404);r.end();return}r.writeHead(200,{'Content-Type':m[p.extname(u).slice(1)]||'application/octet-stream'});r.end(d)})}).listen(3000,()=>console.log('http://localhost:3000'));
+"
 ```
 
-## Commands
+Or use any static file server: `npx serve public`, `python3 -m http.server -d public`, etc.
 
-- `pnpm dev`: start the local development server through `vp dev`
-- `pnpm build`: create the static production build through `vp build`
-- `pnpm test`: run the Node test suite
-- `pnpm run check`: run `svelte-check` with warnings treated as failures, then verify the Vite+ production build
+## Tests
+
+```sh
+# Unit tests (no dependencies needed)
+npm test
+
+# E2E tests (one-time setup, then run)
+npm install && npx playwright install chromium
+npm run test:e2e
+
+# Both
+npm run test:all
+```
 
 ## Deployment
 
-This repo is intended to be deployed as a static site. The SvelteKit build uses `@sveltejs/adapter-static`, so the generated output in `build/` can be deployed to any static host.
+The `public/` directory is the entire site. No build step. Deploy it to any static host.
 
-On pushes to `main`, GitHub Actions now:
+On pushes to `main`, GitHub Actions:
 
-- runs the test and check pipeline
-- rebuilds the static site
-- uploads the contents of `build/`
-- removes stale files from the configured Bunny Storage path after the new build is in place
-- purges the configured Bunny Pull Zone cache so the CDN stops serving stale assets
+1. Runs the unit test suite
+2. Uploads the contents of `public/` to Bunny Storage
+3. Removes stale files from the configured storage path
+4. Purges the Bunny Pull Zone cache
 
 Required GitHub Actions secrets:
 
-- `BUNNY_API_KEY`: your Bunny account API key used for Core Platform API calls such as cache purges
-- `BUNNY_PULL_ZONE_ID`: the numeric Pull Zone ID for the CDN zone serving the site
-- `BUNNY_STORAGE_ENDPOINT`: the storage hostname for your zone region, for example `storage.bunnycdn.com` or `uk.storage.bunnycdn.com`
+- `BUNNY_API_KEY`: your Bunny account API key for cache purges
+- `BUNNY_PULL_ZONE_ID`: the numeric Pull Zone ID for the CDN zone
+- `BUNNY_STORAGE_ENDPOINT`: the storage hostname (e.g. `storage.bunnycdn.com`)
 - `BUNNY_STORAGE_ZONE`: your Bunny Storage zone name
-- `BUNNY_STORAGE_PASSWORD`: your storage zone password from the Bunny dashboard's FTP & API Access section
+- `BUNNY_STORAGE_PASSWORD`: your storage zone password
 
 ## Privacy
 
@@ -86,4 +109,4 @@ If you make changes, keep the product intent intact: minimal UI, plain text firs
 ## Licenses
 
 - Project license: see [LICENSE](./LICENSE)
-- Font license: see [OFL.txt](./static/OFL.txt)
+- Font license: see [public/fonts/OFL.txt](./public/fonts/OFL.txt)
