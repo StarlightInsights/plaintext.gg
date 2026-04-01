@@ -313,6 +313,42 @@ test.describe('Toolbar visibility', () => {
 });
 
 // ============================================================
+// 5b. TOOLBAR BLUR / TRANSPARENCY
+// ============================================================
+
+test.describe('Toolbar blur transparency', () => {
+  test('visible toolbar has a translucent background', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const toolbar = page.locator('#toolbar');
+    await expect(toolbar).not.toHaveClass(/hidden/);
+
+    const bgColor = await toolbar.evaluate(
+      (el) => getComputedStyle(el).backgroundColor
+    );
+    // Background should have alpha < 1 (translucent)
+    // Modern browsers may return rgba(...) or color(srgb ... / alpha)
+    const alphaMatch = bgColor.match(/\/\s*([\d.]+)\s*\)/) ||
+                       bgColor.match(/,\s*([\d.]+)\s*\)$/);
+    expect(alphaMatch).not.toBeNull();
+    const alpha = parseFloat(alphaMatch[1]);
+    expect(alpha).toBeLessThan(1);
+  });
+
+  test('visible toolbar has backdrop-filter blur applied', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    const toolbar = page.locator('#toolbar');
+    await expect(toolbar).not.toHaveClass(/hidden/);
+
+    const backdropFilter = await toolbar.evaluate(
+      (el) => getComputedStyle(el).backdropFilter
+    );
+    expect(backdropFilter).toContain('blur(6px)');
+  });
+});
+
+// ============================================================
 // 6. DIALOGS
 // ============================================================
 
