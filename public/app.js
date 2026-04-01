@@ -338,8 +338,6 @@ import {
   var toolbar = /** @type {HTMLElement} */ (document.getElementById('toolbar'));
   var editorEl = /** @type {HTMLTextAreaElement} */ (document.getElementById('editor'));
   var btnInfo = /** @type {HTMLButtonElement} */ (document.getElementById('btn-info'));
-  var btnPrivacy = /** @type {HTMLButtonElement} */ (document.getElementById('btn-privacy'));
-  var btnThanks = /** @type {HTMLButtonElement} */ (document.getElementById('btn-thanks'));
   var btnFontUp = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-up'));
   var btnFontDown = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-down'));
   var btnSave = /** @type {HTMLButtonElement} */ (document.getElementById('btn-save'));
@@ -351,8 +349,6 @@ import {
   var toggleDesktop = /** @type {HTMLDivElement} */ (document.getElementById('toggle-desktop'));
   var toggleMobile = /** @type {HTMLDivElement} */ (document.getElementById('toggle-mobile'));
   var dialogInfo = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-info'));
-  var dialogPrivacy = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-privacy'));
-  var dialogThanks = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-thanks'));
   var btnUpload = /** @type {HTMLButtonElement} */ (document.getElementById('btn-upload'));
   var fileUpload = /** @type {HTMLInputElement} */ (document.getElementById('file-upload'));
   var iconCopy = /** @type {HTMLElement} */ (document.getElementById('icon-copy'));
@@ -815,13 +811,9 @@ import {
 
     // Setup dialogs
     setupDialog(dialogInfo);
-    setupDialog(dialogPrivacy);
-    setupDialog(dialogThanks);
 
     // Button events
     btnInfo.addEventListener('click', function () { openDialog(dialogInfo); });
-    btnPrivacy.addEventListener('click', function () { openDialog(dialogPrivacy); });
-    btnThanks.addEventListener('click', function () { openDialog(dialogThanks); });
 
     /**
      * Adjust the font size by a delta and persist the new value.
