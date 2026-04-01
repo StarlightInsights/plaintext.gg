@@ -325,7 +325,7 @@ main.dragover::after {
 
 .dialog {
   margin: auto;
-  width: min(32rem, calc(100vw - 2rem));
+  width: min(36rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 1rem);
   overflow-y: auto;
   border: 1px solid var(--panel-border);
@@ -424,6 +424,11 @@ main.dragover::after {
 
 .dialog-body p {
   margin: 0;
+}
+
+.dialog-body strong {
+  font-family: var(--font-main);
+  font-weight: 400;
 }
 
 .dialog-body a,

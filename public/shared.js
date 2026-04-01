@@ -44,7 +44,7 @@
 // ---- Constants ----
 
 /** @type {number} */
-export var DEFAULT_FONT_SIZE = 14;
+export var DEFAULT_FONT_SIZE = 16;
 /** @type {number} */
 export var FONT_STEP = 2;
 /** @type {number} */

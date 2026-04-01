@@ -54,11 +54,11 @@ test.describe('Page load', () => {
     await expect(html).toHaveAttribute('data-theme', 'light');
   });
 
-  test('default font size is 14px', async ({ page }) => {
+  test('default font size is 16px', async ({ page }) => {
     await page.goto('/');
     const editor = page.locator('#editor');
     const fontSize = await editor.evaluate((el) => el.style.fontSize);
-    expect(fontSize).toBe('14px');
+    expect(fontSize).toBe('16px');
   });
 
   test('toolbar is hidden by default (no stored value)', async ({ page }) => {
@@ -241,7 +241,7 @@ test.describe('Font size controls', () => {
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
-    expect(size).toBe(18);
+    expect(size).toBe(20);
   });
 });
 
@@ -368,35 +368,9 @@ test.describe('Dialogs', () => {
     await expect(dialog).not.toBeVisible();
   });
 
-  test('privacy dialog opens and closes', async ({ page }) => {
-    await page.locator('#btn-privacy').click();
-    const dialog = page.locator('#dialog-privacy');
-    await expect(dialog).toBeVisible();
-    await dialog.locator('.dialog-close').click();
-    await expect(dialog).not.toBeVisible();
-  });
-
-  test('thanks dialog opens and closes', async ({ page }) => {
-    await page.locator('#btn-thanks').click();
-    const dialog = page.locator('#dialog-thanks');
-    await expect(dialog).toBeVisible();
-    await dialog.locator('.dialog-close').click();
-    await expect(dialog).not.toBeVisible();
-  });
-
   test('info dialog has correct title', async ({ page }) => {
     await page.locator('#btn-info').click();
-    await expect(page.locator('#dialog-info-title')).toHaveText('why plaintext.gg?');
-  });
-
-  test('privacy dialog has correct title', async ({ page }) => {
-    await page.locator('#btn-privacy').click();
-    await expect(page.locator('#dialog-privacy-title')).toHaveText('privacy');
-  });
-
-  test('thanks dialog has correct title', async ({ page }) => {
-    await page.locator('#btn-thanks').click();
-    await expect(page.locator('#dialog-thanks-title')).toHaveText('thanks');
+    await expect(page.locator('#dialog-info-title')).toHaveText('about.');
   });
 
   test('dialog closes on backdrop click', async ({ page }) => {
@@ -413,22 +387,22 @@ test.describe('Dialogs', () => {
     expect(isOpen).toBe(false);
   });
 
-  test('info dialog contains open-source link', async ({ page }) => {
+  test('info dialog contains GitHub link', async ({ page }) => {
     await page.locator('#btn-info').click();
     const link = page.locator('#dialog-info-desc a[href*="github.com"]');
     await expect(link).toBeVisible();
-    await expect(link).toHaveText('open-source');
+    await expect(link).toHaveText('GitHub');
   });
 
-  test('thanks dialog contains Commit Mono link', async ({ page }) => {
-    await page.locator('#btn-thanks').click();
-    const link = page.locator('#dialog-thanks-desc a[href*="commitmono"]');
+  test('info dialog contains Commit Mono link', async ({ page }) => {
+    await page.locator('#btn-info').click();
+    const link = page.locator('#dialog-info-desc a[href*="commitmono"]');
     await expect(link).toBeVisible();
   });
 
-  test('thanks dialog contains Phosphor link', async ({ page }) => {
-    await page.locator('#btn-thanks').click();
-    const link = page.locator('#dialog-thanks-desc a[href*="phosphoricons"]');
+  test('info dialog contains Phosphor link', async ({ page }) => {
+    await page.locator('#btn-info').click();
+    const link = page.locator('#dialog-info-desc a[href*="phosphoricons"]');
     await expect(link).toBeVisible();
   });
 
@@ -558,7 +532,7 @@ test.describe('Accessibility', () => {
 
   test('dialogs have aria-labelledby and aria-describedby', async ({ page }) => {
     await page.goto('/');
-    for (const id of ['dialog-info', 'dialog-privacy', 'dialog-thanks']) {
+    for (const id of ['dialog-info']) {
       const dialog = page.locator(`#${id}`);
       await expect(dialog).toHaveAttribute('aria-labelledby', `${id}-title`);
       await expect(dialog).toHaveAttribute('aria-describedby', `${id}-desc`);
@@ -748,7 +722,7 @@ test.describe('Combined interactions', () => {
     await page.waitForSelector('#app-shell:not(.loading)');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
-    expect(size).toBe(20);
+    expect(size).toBe(22);
   });
 
   test('toolbar state, theme, and text all persist', async ({ page }) => {

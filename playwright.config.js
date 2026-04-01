@@ -12,7 +12,7 @@ export default defineConfig({
   webServer: {
     command: 'node server.js 3999',
     port: 3999,
-    reuseExistingServer: false,
+    reuseExistingServer: true,
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
