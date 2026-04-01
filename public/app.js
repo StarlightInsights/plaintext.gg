@@ -239,6 +239,72 @@ import {
     URL.revokeObjectURL(url);
   }
 
+  // ---- File upload helpers ----
+
+  /**
+   * Check if a file content appears to be binary by looking for null bytes.
+   * @param {string} content
+   * @returns {boolean}
+   */
+  function isBinaryContent(content) {
+    for (var i = 0, len = Math.min(content.length, 8192); i < len; i++) {
+      if (content.charCodeAt(i) === 0) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Read a single File as text. Returns a promise resolving to the text content,
+   * or an error placeholder if the file is not a text file.
+   * @param {File} file
+   * @returns {Promise<string>}
+   */
+  function readFileAsText(file) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = /** @type {string} */ (reader.result);
+        if (isBinaryContent(result)) {
+          resolve(file.name + ' is not a text file');
+        } else {
+          resolve(result);
+        }
+      };
+      reader.onerror = function () {
+        resolve(file.name + ' is not a text file');
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  /**
+   * Read multiple files and return their concatenated text content.
+   * Non-text files produce a placeholder message.
+   * @param {FileList | File[]} files
+   * @returns {Promise<string>}
+   */
+  function readMultipleFiles(files) {
+    var promises = [];
+    for (var i = 0; i < files.length; i++) {
+      promises.push(readFileAsText(files[i]));
+    }
+    return Promise.all(promises).then(function (results) {
+      return results.join('\n');
+    });
+  }
+
+  /**
+   * Insert text at the current cursor position in the editor textarea.
+   * Uses execCommand('insertText') to preserve the native undo stack,
+   * so Ctrl+Z / Cmd+Z will remove the inserted text in one step.
+   * @param {string} content
+   * @returns {void}
+   */
+  function insertTextAtCursor(content) {
+    editorEl.focus();
+    document.execCommand('insertText', false, content);
+  }
+
   // ---- BroadcastChannel helpers ----
 
   /**
@@ -287,6 +353,8 @@ import {
   var dialogInfo = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-info'));
   var dialogPrivacy = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-privacy'));
   var dialogThanks = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-thanks'));
+  var btnUpload = /** @type {HTMLButtonElement} */ (document.getElementById('btn-upload'));
+  var fileUpload = /** @type {HTMLInputElement} */ (document.getElementById('file-upload'));
   var iconCopy = /** @type {HTMLElement} */ (document.getElementById('icon-copy'));
   var iconCopyFeedback = /** @type {HTMLElement} */ (document.getElementById('icon-copy-feedback'));
   var iconThemeLight = /** @type {HTMLElement} */ (document.getElementById('icon-theme-light'));
@@ -770,6 +838,46 @@ import {
     btnFontDown.addEventListener('click', function () { changeFontSize(-FONT_STEP); });
 
     btnSave.addEventListener('click', function () { downloadFile(text); });
+
+    // Upload button: trigger hidden file input
+    btnUpload.addEventListener('click', function () {
+      fileUpload.value = '';
+      fileUpload.click();
+    });
+
+    // File input change: read selected files and insert at cursor
+    fileUpload.addEventListener('change', function () {
+      if (!fileUpload.files || fileUpload.files.length === 0) return;
+      readMultipleFiles(fileUpload.files).then(function (content) {
+        insertTextAtCursor(content);
+      });
+    });
+
+    // Drag-and-drop on editor
+    var editorMain = /** @type {HTMLElement} */ (editorEl.parentElement);
+
+    editorEl.addEventListener('dragover', function (e) {
+      if (e.dataTransfer && e.dataTransfer.types.indexOf('Files') !== -1) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        editorMain.classList.add('dragover');
+      }
+    });
+
+    editorEl.addEventListener('dragleave', function (e) {
+      if (e.relatedTarget === null || !editorEl.contains(/** @type {Node} */ (e.relatedTarget))) {
+        editorMain.classList.remove('dragover');
+      }
+    });
+
+    editorEl.addEventListener('drop', function (e) {
+      editorMain.classList.remove('dragover');
+      if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+      e.preventDefault();
+      readMultipleFiles(e.dataTransfer.files).then(function (content) {
+        insertTextAtCursor(content);
+      });
+    });
 
     btnCopy.addEventListener('click', function () {
       copyPlainText(text, editorEl).then(function (ok) {

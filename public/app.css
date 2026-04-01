@@ -298,6 +298,27 @@ main {
   100% { opacity: 1; }
 }
 
+/* ---- Drag-over feedback ---- */
+
+main.dragover .editor {
+  background-color: var(--border);
+}
+
+main.dragover::after {
+  content: 'drop to insert at cursor';
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  color: var(--text-muted);
+  font-family: var(--font-dialog);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+
 /* ---- Dialogs ---- */
 
 .dialog {

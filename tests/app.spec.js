@@ -734,3 +734,293 @@ test.describe('Combined interactions', () => {
     await expect(page.locator('#editor')).toHaveValue('everything persists');
   });
 });
+
+// ============================================================
+// 16. FILE UPLOAD
+// ============================================================
+
+test.describe('File upload', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+  });
+
+  // ---- Upload button presence & accessibility ----
+
+  test('upload button is present and has correct aria-label', async ({ page }) => {
+    const btn = page.locator('#btn-upload');
+    await expect(btn).toBeVisible();
+    await expect(btn).toHaveAttribute('aria-label', 'Upload text file');
+  });
+
+  test('upload button sits between save and copy', async ({ page }) => {
+    const controls = page.locator('.toolbar-controls');
+    const buttons = controls.locator('> button.btn-icon');
+    const ids = await buttons.evaluateAll((els) => els.map((el) => el.id));
+    const saveIdx = ids.indexOf('btn-save');
+    const uploadIdx = ids.indexOf('btn-upload');
+    const copyIdx = ids.indexOf('btn-copy');
+    expect(saveIdx).toBeGreaterThanOrEqual(0);
+    expect(uploadIdx).toBe(saveIdx + 1);
+    expect(copyIdx).toBe(uploadIdx + 1);
+  });
+
+  test('hidden file input exists with multiple attribute', async ({ page }) => {
+    const input = page.locator('#file-upload');
+    await expect(input).toHaveAttribute('multiple', '');
+    await expect(input).toBeHidden();
+  });
+
+  // ---- Single text file via file input ----
+
+  test('uploading a single text file inserts its content', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await page.locator('#file-upload').setInputFiles({
+      name: 'hello.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('hello from file'),
+    });
+    await expect(editor).toHaveValue('hello from file');
+  });
+
+  test('uploaded text is inserted at cursor position', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.fill('before  after');
+    await editor.dispatchEvent('input');
+    // Place cursor between the two spaces (position 7)
+    await editor.evaluate((el) => {
+      el.setSelectionRange(7, 7);
+    });
+    await page.locator('#file-upload').setInputFiles({
+      name: 'insert.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('MIDDLE'),
+    });
+    await expect(editor).toHaveValue('before MIDDLE after');
+  });
+
+  test('uploaded text replaces current selection', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.fill('hello world');
+    await editor.dispatchEvent('input');
+    // Select "world" (positions 6-11)
+    await editor.evaluate((el) => {
+      el.setSelectionRange(6, 11);
+    });
+    await page.locator('#file-upload').setInputFiles({
+      name: 'replace.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('universe'),
+    });
+    await expect(editor).toHaveValue('hello universe');
+  });
+
+  // ---- Multiple files ----
+
+  test('uploading multiple files concatenates their content', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await page.locator('#file-upload').setInputFiles([
+      { name: 'a.txt', mimeType: 'text/plain', buffer: Buffer.from('first') },
+      { name: 'b.txt', mimeType: 'text/plain', buffer: Buffer.from('second') },
+      { name: 'c.txt', mimeType: 'text/plain', buffer: Buffer.from('third') },
+    ]);
+    await expect(editor).toHaveValue('first\nsecond\nthird');
+  });
+
+  // ---- Binary file detection ----
+
+  test('binary file shows error message instead of content', async ({ page }) => {
+    const editor = page.locator('#editor');
+    // Create a buffer with null bytes (binary signature)
+    const binaryBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00]);
+    await page.locator('#file-upload').setInputFiles({
+      name: 'image.png',
+      mimeType: 'image/png',
+      buffer: binaryBuffer,
+    });
+    await expect(editor).toHaveValue('image.png is not a text file');
+  });
+
+  test('mix of text and binary files handles each correctly', async ({ page }) => {
+    const editor = page.locator('#editor');
+    const binaryBuffer = Buffer.from([0x00, 0x01, 0x02]);
+    await page.locator('#file-upload').setInputFiles([
+      { name: 'readme.txt', mimeType: 'text/plain', buffer: Buffer.from('readable') },
+      { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: binaryBuffer },
+    ]);
+    await expect(editor).toHaveValue('readable\nphoto.jpg is not a text file');
+  });
+
+  // ---- Non-standard extensions treated as text ----
+
+  test('files with non-standard extensions are read as text', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await page.locator('#file-upload').setInputFiles({
+      name: 'config.yaml',
+      mimeType: 'application/x-yaml',
+      buffer: Buffer.from('key: value'),
+    });
+    await expect(editor).toHaveValue('key: value');
+  });
+
+  test('extensionless files are read as text', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await page.locator('#file-upload').setInputFiles({
+      name: 'Makefile',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.from('all: build'),
+    });
+    await expect(editor).toHaveValue('all: build');
+  });
+
+  // ---- Persistence after upload ----
+
+  test('uploaded text persists across reload', async ({ page }) => {
+    await page.locator('#file-upload').setInputFiles({
+      name: 'persist.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('should persist'),
+    });
+    await expect(page.locator('#editor')).toHaveValue('should persist');
+    await page.waitForTimeout(500);
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    await expect(page.locator('#editor')).toHaveValue('should persist');
+  });
+
+  // ---- Upload into existing text ----
+
+  test('upload appends at end when cursor is at end', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.fill('existing');
+    await editor.dispatchEvent('input');
+    // Move cursor to end
+    await editor.evaluate((el) => {
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+    await page.locator('#file-upload').setInputFiles({
+      name: 'more.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from(' content'),
+    });
+    await expect(editor).toHaveValue('existing content');
+  });
+
+  test('upload prepends when cursor is at start', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.fill('existing');
+    await editor.dispatchEvent('input');
+    // Move cursor to start
+    await editor.evaluate((el) => {
+      el.setSelectionRange(0, 0);
+    });
+    await page.locator('#file-upload').setInputFiles({
+      name: 'prefix.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('new '),
+    });
+    await expect(editor).toHaveValue('new existing');
+  });
+
+  // ---- Upload button can be used repeatedly ----
+
+  test('upload button works multiple times in sequence', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await page.locator('#file-upload').setInputFiles({
+      name: 'first.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('aaa'),
+    });
+    await expect(editor).toHaveValue('aaa');
+    // Upload again — cursor should be at end of previous insert
+    await page.locator('#file-upload').setInputFiles({
+      name: 'second.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('bbb'),
+    });
+    await expect(editor).toHaveValue('aaabbb');
+  });
+
+  // ---- Drag-and-drop ----
+
+  test('drag over editor shows visual feedback', async ({ page }) => {
+    const editor = page.locator('#editor');
+    const mainEl = page.locator('main');
+    // Simulate dragover with Files in dataTransfer
+    await editor.evaluate((el) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['test'], 'test.txt', { type: 'text/plain' }));
+      const event = new DragEvent('dragover', { dataTransfer: dt, bubbles: true });
+      el.dispatchEvent(event);
+    });
+    await expect(mainEl).toHaveClass(/dragover/);
+  });
+
+  test('drag leave removes visual feedback', async ({ page }) => {
+    const editor = page.locator('#editor');
+    const mainEl = page.locator('main');
+    // Trigger dragover first
+    await editor.evaluate((el) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['test'], 'test.txt', { type: 'text/plain' }));
+      el.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true }));
+    });
+    await expect(mainEl).toHaveClass(/dragover/);
+    // Then dragleave
+    await editor.evaluate((el) => {
+      el.dispatchEvent(new DragEvent('dragleave', { bubbles: true, relatedTarget: null }));
+    });
+    await expect(mainEl).not.toHaveClass(/dragover/);
+  });
+
+  test('dropping a text file inserts its content', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.evaluate((el) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['dropped content'], 'drop.txt', { type: 'text/plain' }));
+      el.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(editor).toHaveValue('dropped content');
+  });
+
+  test('dropping removes dragover feedback', async ({ page }) => {
+    const editor = page.locator('#editor');
+    const mainEl = page.locator('main');
+    // Trigger dragover then drop
+    await editor.evaluate((el) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['test'], 'test.txt', { type: 'text/plain' }));
+      el.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true }));
+    });
+    await expect(mainEl).toHaveClass(/dragover/);
+    await editor.evaluate((el) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['test'], 'test.txt', { type: 'text/plain' }));
+      el.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(mainEl).not.toHaveClass(/dragover/);
+  });
+
+  test('dropping a binary file shows error message', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.evaluate((el) => {
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00]);
+      const file = new File([bytes], 'image.png', { type: 'image/png' });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      el.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(editor).toHaveValue('image.png is not a text file');
+  });
+
+  test('dropping multiple files concatenates their content', async ({ page }) => {
+    const editor = page.locator('#editor');
+    await editor.evaluate((el) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['alpha'], 'a.txt', { type: 'text/plain' }));
+      dt.items.add(new File(['beta'], 'b.txt', { type: 'text/plain' }));
+      el.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(editor).toHaveValue('alpha\nbeta');
+  });
+});
