@@ -15,9 +15,9 @@ const PRECACHE_URLS = [
   '/icon-512.png',
   '/apple-touch-icon.png',
   '/favicon.ico',
-  '/fonts/CommitMono-200-Regular.woff2',
-  '/fonts/CommitMono-250-Regular.woff2',
-  '/fonts/CommitMono-300-Regular.woff2',
+  '/fonts/commitmono/CommitMono-200-Regular.woff2',
+  '/fonts/commitmono/CommitMono-250-Regular.woff2',
+  '/fonts/commitmono/CommitMono-300-Regular.woff2',
 ];
 
 /**
