@@ -109,4 +109,4 @@ If you make changes, keep the product intent intact: minimal UI, plain text firs
 ## Licenses
 
 - Project license: see [LICENSE](./LICENSE)
-- Font license: see [public/fonts/OFL.txt](./public/fonts/OFL.txt)
+- Font licenses: see [LICENSE-FONT](./LICENSE-FONT)
