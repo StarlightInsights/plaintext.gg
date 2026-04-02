@@ -20,6 +20,16 @@ const PRECACHE_URLS = [
   '/fonts/CommitMono-300-Regular.woff2',
 ];
 
+/**
+ * Check if a request URL points to a font file.
+ * Fonts are immutable and safe to serve cache-first forever.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isFontRequest(url) {
+  return new URL(url).pathname.endsWith('.woff2');
+}
+
 sw.addEventListener('install', /** @param {ExtendableEvent} event */ (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
@@ -39,16 +49,38 @@ sw.addEventListener('activate', /** @param {ExtendableEvent} event */ (event) =>
 sw.addEventListener('fetch', /** @param {FetchEvent} event */ (event) => {
   if (event.request.method !== 'GET') return;
 
+  if (isFontRequest(event.request.url)) {
+    // Cache-first for fonts — immutable assets that never change between deploys.
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            var clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Network-first for app code (HTML, JS, CSS, icons, manifest).
+  // Always fetch fresh content when online; fall back to cache when offline.
+  // { cache: 'no-cache' } ensures the browser revalidates with the server
+  // rather than serving a stale response from the HTTP cache.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      });
-      return cached || network;
-    })
+    fetch(event.request, { cache: 'no-cache' }).then((response) => {
+      if (response.ok) {
+        var clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      }
+      return response;
+    }).catch(() =>
+      caches.match(event.request).then((cached) =>
+        cached || new Response('Offline', { status: 503, statusText: 'Service Unavailable' })
+      )
+    )
   );
 });
