@@ -473,14 +473,14 @@ import {
   }
 
   /**
-   * CSS custom property name for each font family stack.
+   * Font-family CSS values for the editor textarea.
    * @type {Readonly<Record<string, string>>}
    */
-  var FONT_CSS_VAR = {
-    'mono': '--font-mono',
-    'sans-serif': '--font-sans',
-    'serif': '--font-serif',
-    'dyslexic': '--font-dyslexic'
+  var FONT_STACK = {
+    'mono': '"CommitMono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    'sans-serif': '"Roboto", system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif',
+    'serif': '"EBGaramond", "Georgia", "Times New Roman", serif',
+    'dyslexic': '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
   };
 
   /**
@@ -502,8 +502,7 @@ import {
    * @returns {void}
    */
   function applyFontFamily() {
-    var cssVar = FONT_CSS_VAR[fontFamily] || FONT_CSS_VAR['mono'];
-    document.documentElement.style.setProperty('--font-main', 'var(' + cssVar + ')');
+    editorEl.style.fontFamily = FONT_STACK[fontFamily] || FONT_STACK['mono'];
 
     // Update font family radio buttons
     for (var i = 0; i < fontButtons.length; i++) {
@@ -833,6 +832,16 @@ import {
 
     if (e.key === STORAGE_KEYS.fontFamily) {
       fontFamily = normalizeFontFamily(e.newValue);
+      // Bump weight to regular if unsupported by new font
+      var supported = FONT_FAMILY_WEIGHTS[fontFamily] || FONT_FAMILY_WEIGHTS['mono'];
+      var weightOk = false;
+      for (var _sw = 0; _sw < supported.length; _sw++) {
+        if (supported[_sw] === fontWeight) { weightOk = true; break; }
+      }
+      if (!weightOk) {
+        fontWeight = 300;
+        saveStored(STORAGE_KEYS.fontWeight, String(fontWeight));
+      }
       applyFontFamily();
       applyFontWeight();
       return;

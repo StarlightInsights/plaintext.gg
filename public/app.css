@@ -187,11 +187,7 @@
 /* ---- Design tokens ---- */
 
 :root {
-  --font-mono: "CommitMono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --font-sans: "Roboto", system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-  --font-serif: "EBGaramond", "Georgia", "Times New Roman", serif;
-  --font-dyslexic: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
-  --font-main: var(--font-mono);
+  --font-main: "CommitMono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-header: "CommitMono-250", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-dialog: "CommitMono-200", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --icon-size: 1.25rem;
