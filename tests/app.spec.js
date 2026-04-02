@@ -631,12 +631,12 @@ test.describe('Cross-tab localStorage sync', () => {
     await page.evaluate(() => {
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'plaintext:fontWeight',
-        newValue: '700',
+        newValue: '600',
         storageArea: localStorage,
       }));
     });
     const weight = await page.locator('#editor').evaluate((el) => el.style.fontWeight);
-    expect(weight).toBe('700');
+    expect(weight).toBe('600');
   });
 
   test('font italic syncs via storage event', async ({ page }) => {
@@ -674,63 +674,43 @@ test.describe('Settings dialog', () => {
     await expect(page.locator('#dialog-settings-title')).toHaveText('settings');
   });
 
-  test('font weight increase works', async ({ page }) => {
+  test('font weight light button sets weight to 200', async ({ page }) => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
-    const editor = page.locator('#editor');
-    const before = await editor.evaluate((el) => parseInt(el.style.fontWeight));
-    await page.locator('#btn-weight-up').click();
-    const after = await editor.evaluate((el) => parseInt(el.style.fontWeight));
-    expect(after).toBe(before + 100);
-  });
-
-  test('font weight decrease works', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('#dialog-settings').evaluate(el => el.showModal());
-    const editor = page.locator('#editor');
-    const before = await editor.evaluate((el) => parseInt(el.style.fontWeight));
-    await page.locator('#btn-weight-down').click();
-    const after = await editor.evaluate((el) => parseInt(el.style.fontWeight));
-    expect(after).toBe(before - 100);
-  });
-
-  test('font weight cannot go below minimum (200)', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('#dialog-settings').evaluate(el => el.showModal());
-    const btn = page.locator('#btn-weight-down');
-    while (!(await btn.isDisabled())) {
-      await btn.click();
-    }
+    await page.locator('#btn-weight-light').click();
     const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
     expect(weight).toBe(200);
-    await expect(btn).toBeDisabled();
+    await expect(page.locator('#btn-weight-light')).toHaveAttribute('aria-checked', 'true');
+    await expect(page.locator('#btn-weight-regular')).toHaveAttribute('aria-checked', 'false');
+    await expect(page.locator('#btn-weight-bold')).toHaveAttribute('aria-checked', 'false');
   });
 
-  test('font weight cannot go above maximum (700)', async ({ page }) => {
+  test('font weight regular button sets weight to 300', async ({ page }) => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
-    const btn = page.locator('#btn-weight-up');
-    while (!(await btn.isDisabled())) {
-      await btn.click();
-    }
+    // First switch to light, then back to regular
+    await page.locator('#btn-weight-light').click();
+    await page.locator('#btn-weight-regular').click();
     const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
-    expect(weight).toBe(700);
-    await expect(btn).toBeDisabled();
+    expect(weight).toBe(300);
+    await expect(page.locator('#btn-weight-regular')).toHaveAttribute('aria-checked', 'true');
   });
 
-  test('font weight value display updates', async ({ page }) => {
+  test('font weight bold button sets weight to 600', async ({ page }) => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
-    await expect(page.locator('#font-weight-value')).toHaveText('400');
-    await page.locator('#btn-weight-up').click();
-    await expect(page.locator('#font-weight-value')).toHaveText('500');
+    await page.locator('#btn-weight-bold').click();
+    const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
+    expect(weight).toBe(600);
+    await expect(page.locator('#btn-weight-bold')).toHaveAttribute('aria-checked', 'true');
+    await expect(page.locator('#btn-weight-regular')).toHaveAttribute('aria-checked', 'false');
+    await expect(page.locator('#btn-weight-light')).toHaveAttribute('aria-checked', 'false');
   });
 
   test('font weight persists across reload', async ({ page }) => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
-    await page.locator('#btn-weight-up').click();
-    await page.locator('#btn-weight-up').click();
+    await page.locator('#btn-weight-bold').click();
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
@@ -765,7 +745,7 @@ test.describe('Settings dialog', () => {
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
     // Change all settings
     await page.locator('#btn-font-up').click();
-    await page.locator('#btn-weight-up').click();
+    await page.locator('#btn-weight-bold').click();
     await page.locator('#btn-italic').click();
     // Reset
     await page.locator('#btn-reset').click();
@@ -775,7 +755,7 @@ test.describe('Settings dialog', () => {
     const weight = await editor.evaluate((el) => parseInt(el.style.fontWeight));
     const style = await editor.evaluate((el) => el.style.fontStyle);
     expect(size).toBe(16);
-    expect(weight).toBe(400);
+    expect(weight).toBe(300);
     expect(style).toBe('normal');
     await expect(page.locator('#btn-italic')).toHaveText('off');
   });
@@ -784,7 +764,7 @@ test.describe('Settings dialog', () => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
     await page.locator('#btn-font-up').click();
-    await page.locator('#btn-weight-up').click();
+    await page.locator('#btn-weight-bold').click();
     await page.locator('#btn-italic').click();
     await page.locator('#btn-reset').click();
     await page.reload();
@@ -794,7 +774,7 @@ test.describe('Settings dialog', () => {
     const weight = await editor.evaluate((el) => parseInt(el.style.fontWeight));
     const style = await editor.evaluate((el) => el.style.fontStyle);
     expect(size).toBe(16);
-    expect(weight).toBe(400);
+    expect(weight).toBe(300);
     expect(style).toBe('normal');
   });
 });

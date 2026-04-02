@@ -52,13 +52,15 @@ export var MIN_FONT_SIZE = 10;
 /** @type {number} */
 export var MAX_FONT_SIZE = 34;
 /** @type {number} */
-export var DEFAULT_FONT_WEIGHT = 400;
+export var DEFAULT_FONT_WEIGHT = 300;
 /** @type {number} */
 export var MIN_FONT_WEIGHT = 200;
 /** @type {number} */
-export var MAX_FONT_WEIGHT = 700;
+export var MAX_FONT_WEIGHT = 600;
 /** @type {number} */
 export var FONT_WEIGHT_STEP = 100;
+/** @type {ReadonlyArray<number>} */
+export var FONT_WEIGHTS = [200, 300, 600];
 /** @type {number} */
 export var COPY_FEEDBACK_MS = 400;
 /** @type {number} */
@@ -109,8 +111,13 @@ export function parseStoredFontSize(v) {
  * @returns {number}
  */
 export function clampFontWeight(n) {
-  var clamped = Math.min(MAX_FONT_WEIGHT, Math.max(MIN_FONT_WEIGHT, n));
-  return Math.round(clamped / FONT_WEIGHT_STEP) * FONT_WEIGHT_STEP;
+  var best = FONT_WEIGHTS[0];
+  for (var i = 1; i < FONT_WEIGHTS.length; i++) {
+    if (Math.abs(n - FONT_WEIGHTS[i]) < Math.abs(n - best)) {
+      best = FONT_WEIGHTS[i];
+    }
+  }
+  return best;
 }
 
 /**
