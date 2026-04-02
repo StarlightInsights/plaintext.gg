@@ -9,6 +9,7 @@ import {
   parseStoredFontItalic,
   normalizeTheme,
   normalizeToolbarVisibility,
+  normalizeFontFamily,
   compareVersions,
   isVersionNewer,
   createRecord,
@@ -18,6 +19,9 @@ import {
   DEFAULT_FONT_WEIGHT,
   MIN_FONT_WEIGHT,
   MAX_FONT_WEIGHT,
+  DEFAULT_FONT_FAMILY,
+  FONT_FAMILIES,
+  FONT_FAMILY_WEIGHTS,
 } from '../public/shared.js';
 
 test('parseStoredFontSize returns NaN for missing values', () => {
@@ -158,4 +162,52 @@ test('createRecord uses the current document id and version', () => {
       saveSequence: 1
     }
   );
+});
+
+test('normalizeFontFamily returns mono for null', () => {
+  assert.equal(normalizeFontFamily(null), 'mono');
+});
+
+test('normalizeFontFamily returns mono for unknown strings', () => {
+  assert.equal(normalizeFontFamily('comic-sans'), 'mono');
+});
+
+test('normalizeFontFamily keeps sans-serif', () => {
+  assert.equal(normalizeFontFamily('sans-serif'), 'sans-serif');
+});
+
+test('normalizeFontFamily keeps serif', () => {
+  assert.equal(normalizeFontFamily('serif'), 'serif');
+});
+
+test('normalizeFontFamily keeps dyslexic', () => {
+  assert.equal(normalizeFontFamily('dyslexic'), 'dyslexic');
+});
+
+test('normalizeFontFamily returns mono for empty string', () => {
+  assert.equal(normalizeFontFamily(''), 'mono');
+});
+
+test('FONT_FAMILY_WEIGHTS mono supports all 3 weights', () => {
+  assert.deepEqual(FONT_FAMILY_WEIGHTS['mono'], [200, 300, 600]);
+});
+
+test('FONT_FAMILY_WEIGHTS sans-serif supports all 3 weights', () => {
+  assert.deepEqual(FONT_FAMILY_WEIGHTS['sans-serif'], [200, 300, 600]);
+});
+
+test('FONT_FAMILY_WEIGHTS serif only supports regular and bold', () => {
+  assert.deepEqual(FONT_FAMILY_WEIGHTS['serif'], [300, 600]);
+});
+
+test('FONT_FAMILY_WEIGHTS dyslexic only supports regular and bold', () => {
+  assert.deepEqual(FONT_FAMILY_WEIGHTS['dyslexic'], [300, 600]);
+});
+
+test('DEFAULT_FONT_FAMILY equals mono', () => {
+  assert.equal(DEFAULT_FONT_FAMILY, 'mono');
+});
+
+test('FONT_FAMILIES contains exactly the four supported families', () => {
+  assert.deepEqual(FONT_FAMILIES, ['mono', 'sans-serif', 'serif', 'dyslexic']);
 });

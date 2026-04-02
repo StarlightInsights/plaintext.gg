@@ -48,6 +48,124 @@
   font-display: swap;
 }
 
+/* ---- Sans-serif font: Roboto — 3 weights × 2 styles ---- */
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/roboto/Roboto-ExtraLight.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/roboto/Roboto-ExtraLightItalic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/roboto/Roboto-Light.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/roboto/Roboto-LightItalic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/roboto/Roboto-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/roboto/Roboto-Italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ---- Dyslexic font: OpenDyslexic — 2 weights × 2 styles ---- */
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-Regular.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-Italic.otf") format("opentype");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-Bold.otf") format("opentype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-BoldItalic.otf") format("opentype");
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ---- Serif font: EB Garamond — 2 weights × 2 styles ---- */
+
+@font-face {
+  font-family: "EBGaramond";
+  src: url("/fonts/ebgaramond/EBGaramond-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EBGaramond";
+  src: url("/fonts/ebgaramond/EBGaramond-Italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EBGaramond";
+  src: url("/fonts/ebgaramond/EBGaramond-Medium.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EBGaramond";
+  src: url("/fonts/ebgaramond/EBGaramond-MediumItalic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+}
+
 /* ---- UI fonts ---- */
 
 @font-face {
@@ -553,6 +671,11 @@ main.dragover::after {
 .setting-toggle[aria-checked="true"] {
   background-color: var(--border);
   color: var(--text-primary);
+}
+
+.setting-toggle:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .setting-reset {
