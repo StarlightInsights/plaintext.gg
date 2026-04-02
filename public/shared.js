@@ -52,16 +52,26 @@ export var MIN_FONT_SIZE = 10;
 /** @type {number} */
 export var MAX_FONT_SIZE = 34;
 /** @type {number} */
+export var DEFAULT_FONT_WEIGHT = 400;
+/** @type {number} */
+export var MIN_FONT_WEIGHT = 200;
+/** @type {number} */
+export var MAX_FONT_WEIGHT = 700;
+/** @type {number} */
+export var FONT_WEIGHT_STEP = 100;
+/** @type {number} */
 export var COPY_FEEDBACK_MS = 400;
 /** @type {number} */
 export var PERSIST_DELAY_MS = 300;
 /** @type {string} */
 export var SYNC_CHANNEL = 'plaintext:text-sync';
 
-/** @type {Readonly<{ theme: string, fontSize: string, toolbarIcons: string }>} */
+/** @type {Readonly<{ theme: string, fontSize: string, fontWeight: string, fontItalic: string, toolbarIcons: string }>} */
 export var STORAGE_KEYS = {
   theme: 'plaintext:theme',
   fontSize: 'plaintext:fontSize',
+  fontWeight: 'plaintext:fontWeight',
+  fontItalic: 'plaintext:fontItalic',
   toolbarIcons: 'plaintext:toolbarIcons'
 };
 
@@ -91,6 +101,37 @@ export function clampFontSize(n) {
  */
 export function parseStoredFontSize(v) {
   return v === null ? NaN : Number(v);
+}
+
+/**
+ * Clamp a font weight value to the allowed range, rounding to the nearest step.
+ * @param {number} n
+ * @returns {number}
+ */
+export function clampFontWeight(n) {
+  var clamped = Math.min(MAX_FONT_WEIGHT, Math.max(MIN_FONT_WEIGHT, n));
+  return Math.round(clamped / FONT_WEIGHT_STEP) * FONT_WEIGHT_STEP;
+}
+
+/**
+ * Parse a stored font weight string into a valid weight value.
+ * Returns DEFAULT_FONT_WEIGHT if null or not a valid number.
+ * @param {string | null} v
+ * @returns {number}
+ */
+export function parseStoredFontWeight(v) {
+  if (v === null) return DEFAULT_FONT_WEIGHT;
+  var n = Number(v);
+  return Number.isFinite(n) ? clampFontWeight(n) : DEFAULT_FONT_WEIGHT;
+}
+
+/**
+ * Parse a stored font italic string into a boolean.
+ * @param {string | null} v
+ * @returns {boolean}
+ */
+export function parseStoredFontItalic(v) {
+  return v === 'true';
 }
 
 /**

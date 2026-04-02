@@ -190,7 +190,7 @@ test.describe('Theme toggle', () => {
 test.describe('Font size controls', () => {
   test('increase font size button works', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
     const editor = page.locator('#editor');
     const before = await editor.evaluate((el) => parseInt(el.style.fontSize));
     await page.locator('#btn-font-up').click();
@@ -200,7 +200,7 @@ test.describe('Font size controls', () => {
 
   test('decrease font size button works', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
     const editor = page.locator('#editor');
     const before = await editor.evaluate((el) => parseInt(el.style.fontSize));
     await page.locator('#btn-font-down').click();
@@ -210,8 +210,7 @@ test.describe('Font size controls', () => {
 
   test('font size cannot go below minimum (10px)', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#btn-toggle-desktop').click();
-    // Click down until disabled
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
     const btn = page.locator('#btn-font-down');
     while (!(await btn.isDisabled())) {
       await btn.click();
@@ -223,7 +222,7 @@ test.describe('Font size controls', () => {
 
   test('font size cannot go above maximum (34px)', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
     const btn = page.locator('#btn-font-up');
     while (!(await btn.isDisabled())) {
       await btn.click();
@@ -235,13 +234,21 @@ test.describe('Font size controls', () => {
 
   test('font size persists across reload', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
     await page.locator('#btn-font-up').click();
     await page.locator('#btn-font-up').click();
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     const size = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontSize));
     expect(size).toBe(20);
+  });
+
+  test('font size value display updates', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await expect(page.locator('#font-size-value')).toHaveText('16px');
+    await page.locator('#btn-font-up').click();
+    await expect(page.locator('#font-size-value')).toHaveText('18px');
   });
 });
 
@@ -370,7 +377,7 @@ test.describe('Dialogs', () => {
 
   test('info dialog has correct title', async ({ page }) => {
     await page.locator('#btn-info').click();
-    await expect(page.locator('#dialog-info-title')).toHaveText('about.');
+    await expect(page.locator('#dialog-info-title')).toHaveText('about');
   });
 
   test('dialog closes on backdrop click', async ({ page }) => {
@@ -525,9 +532,10 @@ test.describe('Accessibility', () => {
     await expect(page.locator('.toolbar-controls')).toHaveAttribute('aria-label', 'Editor controls');
   });
 
-  test('font size controls group has correct aria-label', async ({ page }) => {
+  test('settings dialog has aria-labelledby', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.font-size-controls')).toHaveAttribute('aria-label', 'Font size controls');
+    const dialog = page.locator('#dialog-settings');
+    await expect(dialog).toHaveAttribute('aria-labelledby', 'dialog-settings-title');
   });
 
   test('dialogs have aria-labelledby and aria-describedby', async ({ page }) => {
@@ -617,6 +625,177 @@ test.describe('Cross-tab localStorage sync', () => {
       }));
     });
     await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+  });
+  test('font weight syncs via storage event', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'plaintext:fontWeight',
+        newValue: '700',
+        storageArea: localStorage,
+      }));
+    });
+    const weight = await page.locator('#editor').evaluate((el) => el.style.fontWeight);
+    expect(weight).toBe('700');
+  });
+
+  test('font italic syncs via storage event', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'plaintext:fontItalic',
+        newValue: 'true',
+        storageArea: localStorage,
+      }));
+    });
+    const style = await page.locator('#editor').evaluate((el) => el.style.fontStyle);
+    expect(style).toBe('italic');
+  });
+});
+
+// ============================================================
+// 11b. SETTINGS DIALOG
+// ============================================================
+
+test.describe('Settings dialog', () => {
+  test('settings dialog opens and closes', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await page.locator('#btn-settings').click();
+    const dialog = page.locator('#dialog-settings');
+    await expect(dialog).toBeVisible();
+    await dialog.locator('.dialog-close').click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('settings dialog has correct title', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await expect(page.locator('#dialog-settings-title')).toHaveText('settings');
+  });
+
+  test('font weight increase works', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    const editor = page.locator('#editor');
+    const before = await editor.evaluate((el) => parseInt(el.style.fontWeight));
+    await page.locator('#btn-weight-up').click();
+    const after = await editor.evaluate((el) => parseInt(el.style.fontWeight));
+    expect(after).toBe(before + 100);
+  });
+
+  test('font weight decrease works', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    const editor = page.locator('#editor');
+    const before = await editor.evaluate((el) => parseInt(el.style.fontWeight));
+    await page.locator('#btn-weight-down').click();
+    const after = await editor.evaluate((el) => parseInt(el.style.fontWeight));
+    expect(after).toBe(before - 100);
+  });
+
+  test('font weight cannot go below minimum (200)', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    const btn = page.locator('#btn-weight-down');
+    while (!(await btn.isDisabled())) {
+      await btn.click();
+    }
+    const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
+    expect(weight).toBe(200);
+    await expect(btn).toBeDisabled();
+  });
+
+  test('font weight cannot go above maximum (700)', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    const btn = page.locator('#btn-weight-up');
+    while (!(await btn.isDisabled())) {
+      await btn.click();
+    }
+    const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
+    expect(weight).toBe(700);
+    await expect(btn).toBeDisabled();
+  });
+
+  test('font weight value display updates', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await expect(page.locator('#font-weight-value')).toHaveText('400');
+    await page.locator('#btn-weight-up').click();
+    await expect(page.locator('#font-weight-value')).toHaveText('500');
+  });
+
+  test('font weight persists across reload', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await page.locator('#btn-weight-up').click();
+    await page.locator('#btn-weight-up').click();
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
+    expect(weight).toBe(600);
+  });
+
+  test('italic toggle works', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    const btn = page.locator('#btn-italic');
+    await expect(btn).toHaveText('off');
+    await expect(btn).toHaveAttribute('aria-checked', 'false');
+    await btn.click();
+    await expect(btn).toHaveText('on');
+    await expect(btn).toHaveAttribute('aria-checked', 'true');
+    const style = await page.locator('#editor').evaluate((el) => el.style.fontStyle);
+    expect(style).toBe('italic');
+  });
+
+  test('italic persists across reload', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await page.locator('#btn-italic').click();
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    const style = await page.locator('#editor').evaluate((el) => el.style.fontStyle);
+    expect(style).toBe('italic');
+  });
+
+  test('reset button restores defaults', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    // Change all settings
+    await page.locator('#btn-font-up').click();
+    await page.locator('#btn-weight-up').click();
+    await page.locator('#btn-italic').click();
+    // Reset
+    await page.locator('#btn-reset').click();
+    // Verify defaults
+    const editor = page.locator('#editor');
+    const size = await editor.evaluate((el) => parseInt(el.style.fontSize));
+    const weight = await editor.evaluate((el) => parseInt(el.style.fontWeight));
+    const style = await editor.evaluate((el) => el.style.fontStyle);
+    expect(size).toBe(16);
+    expect(weight).toBe(400);
+    expect(style).toBe('normal');
+    await expect(page.locator('#btn-italic')).toHaveText('off');
+  });
+
+  test('reset persists across reload', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await page.locator('#btn-font-up').click();
+    await page.locator('#btn-weight-up').click();
+    await page.locator('#btn-italic').click();
+    await page.locator('#btn-reset').click();
+    await page.reload();
+    await page.waitForSelector('#app-shell:not(.loading)');
+    const editor = page.locator('#editor');
+    const size = await editor.evaluate((el) => parseInt(el.style.fontSize));
+    const weight = await editor.evaluate((el) => parseInt(el.style.fontWeight));
+    const style = await editor.evaluate((el) => el.style.fontStyle);
+    expect(size).toBe(16);
+    expect(weight).toBe(400);
+    expect(style).toBe('normal');
   });
 });
 
@@ -715,6 +894,7 @@ test.describe('Combined interactions', () => {
     await page.goto('/');
     await page.locator('#btn-toggle-desktop').click();
     await page.locator('#btn-theme').click();
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
     await page.locator('#btn-font-up').click();
     await page.locator('#btn-font-up').click();
     await page.locator('#btn-font-up').click();
