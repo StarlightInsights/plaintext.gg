@@ -971,7 +971,7 @@ import {
       });
     });
 
-    btnCopy.addEventListener('mouseleave', clearCopyFeedback);
+    btnCopy.addEventListener('pointerleave', clearCopyFeedback);
 
     btnTheme.addEventListener('click', function () {
       theme = theme === 'dark' ? 'light' : 'dark';

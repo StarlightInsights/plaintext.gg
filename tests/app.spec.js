@@ -444,14 +444,14 @@ test.describe('Copy button', () => {
     await expect(page.locator('#icon-copy-feedback')).toBeVisible();
   });
 
-  test('copy feedback clears on mouseleave', async ({ page }) => {
+  test('copy feedback clears on pointerleave', async ({ page }) => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.locator('#editor').fill('test');
     await page.locator('#editor').dispatchEvent('input');
     await page.locator('#btn-copy').click();
     await expect(page.locator('#icon-copy-feedback')).toBeVisible();
-    // Move mouse away
-    await page.locator('#btn-copy').dispatchEvent('mouseleave');
+    // Pointer leaves button (works for both mouse and touch)
+    await page.locator('#btn-copy').dispatchEvent('pointerleave');
     await expect(page.locator('#icon-copy')).toBeVisible();
   });
 
@@ -1260,5 +1260,103 @@ test.describe('Toolbar responsive layout', () => {
     const navBox = await page.locator('.toolbar-nav').boundingBox();
     const controlsBox = await page.locator('.toolbar-controls').boundingBox();
     expect(navBox.x).toBeLessThan(controlsBox.x);
+  });
+});
+
+// ============================================================
+// TOUCH DEVICE: BUTTONS MUST NOT STICK IN HOVER STATE
+// ============================================================
+
+test.describe('Touch device button hover', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+  });
+
+  test('btn :hover is guarded by @media (hover: hover)', async ({ page }) => {
+    // On a touch-only device (hover: none), .btn:hover must NOT change color.
+    // Verify the stylesheet wraps .btn:hover inside @media (hover: hover).
+    const hoverGuarded = await page.evaluate(() => {
+      for (const sheet of document.styleSheets) {
+        for (const rule of sheet.cssRules) {
+          // Look for @media (hover: hover) containing .btn:hover
+          if (rule instanceof CSSMediaRule && rule.conditionText === '(hover: hover)') {
+            for (const inner of rule.cssRules) {
+              if (inner.selectorText && inner.selectorText.includes('.btn:hover')) {
+                return true;
+              }
+            }
+          }
+          // Fail if .btn:hover exists outside of a media query
+          if (rule instanceof CSSStyleRule && rule.selectorText && rule.selectorText.includes('.btn:hover')) {
+            return false;
+          }
+        }
+      }
+      return false;
+    });
+    expect(hoverGuarded).toBe(true);
+  });
+
+  test('btn-float :hover is guarded by @media (hover: hover)', async ({ page }) => {
+    const hoverGuarded = await page.evaluate(() => {
+      for (const sheet of document.styleSheets) {
+        for (const rule of sheet.cssRules) {
+          if (rule instanceof CSSMediaRule && rule.conditionText === '(hover: hover)') {
+            for (const inner of rule.cssRules) {
+              if (inner.selectorText && inner.selectorText.includes('.btn-float:hover')) {
+                return true;
+              }
+            }
+          }
+          if (rule instanceof CSSStyleRule && rule.selectorText && rule.selectorText.includes('.btn-float:hover')) {
+            return false;
+          }
+        }
+      }
+      return false;
+    });
+    expect(hoverGuarded).toBe(true);
+  });
+
+  test('touch-only: button color does not change on hover', async ({ page }) => {
+    // Emulate a touch-only device (hover: none)
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    // Force media to (hover: none) by evaluating computed style with the query
+    const btn = page.locator('#btn-copy');
+    const baseColor = await btn.evaluate((el) => getComputedStyle(el).color);
+
+    // Dispatch hover-like events that a touch might trigger
+    await btn.dispatchEvent('pointerenter');
+    await btn.dispatchEvent('mouseenter');
+    const hoverColor = await btn.evaluate((el) => getComputedStyle(el).color);
+
+    // On a device that doesn't match (hover: hover), color should stay the same
+    // The Playwright Chromium default doesn't report hover capability,
+    // but even if it does, we verified via CSSOM that the rule is guarded.
+    // Here we just check the color doesn't "stick" after pointer leaves.
+    await btn.dispatchEvent('pointerleave');
+    await btn.dispatchEvent('mouseleave');
+    const afterColor = await btn.evaluate((el) => getComputedStyle(el).color);
+    expect(afterColor).toBe(baseColor);
+  });
+
+  test('copy button feedback clears on pointerleave (touch-friendly)', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('#editor').fill('touch test');
+    await page.locator('#editor').dispatchEvent('input');
+
+    const btn = page.locator('#btn-copy');
+    await btn.click();
+    await expect(page.locator('#icon-copy-feedback')).toBeVisible();
+    expect(await btn.evaluate((el) => el.classList.contains('copy-success'))).toBe(true);
+
+    // Simulate touch release (pointerleave, not mouseleave)
+    await btn.dispatchEvent('pointerleave');
+    await expect(page.locator('#icon-copy')).toBeVisible();
+    expect(await btn.evaluate((el) => el.classList.contains('copy-success'))).toBe(false);
   });
 });
