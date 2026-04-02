@@ -30,7 +30,13 @@ function handleRequest(req, res) {
   readFile(join('public', url), (err, data) => {
     if (err) { res.writeHead(404); res.end(); return; }
     const ext = extname(url).slice(1);
-    res.writeHead(200, { 'Content-Type': TYPES[ext] || 'application/octet-stream' });
+    const cacheControl = ext === 'woff2'
+      ? 'public, max-age=31536000, immutable'
+      : 'no-cache';
+    res.writeHead(200, {
+      'Content-Type': TYPES[ext] || 'application/octet-stream',
+      'Cache-Control': cacheControl,
+    });
     res.end(data);
   });
 }
