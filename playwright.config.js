@@ -8,6 +8,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3999',
     headless: true,
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'node server.js 3999',

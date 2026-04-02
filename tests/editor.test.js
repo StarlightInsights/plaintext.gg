@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 import {
   clampFontSize,
   parseStoredFontSize,
+  clampFontWeight,
+  parseStoredFontWeight,
+  parseStoredFontItalic,
   normalizeTheme,
   normalizeToolbarVisibility,
   compareVersions,
@@ -12,6 +15,9 @@ import {
   DEFAULT_FONT_SIZE,
   MIN_FONT_SIZE,
   MAX_FONT_SIZE,
+  DEFAULT_FONT_WEIGHT,
+  MIN_FONT_WEIGHT,
+  MAX_FONT_WEIGHT,
 } from '../public/shared.js';
 
 test('parseStoredFontSize returns NaN for missing values', () => {
@@ -28,6 +34,45 @@ test('clampFontSize respects the minimum', () => {
 
 test('clampFontSize respects the maximum', () => {
   assert.equal(clampFontSize(MAX_FONT_SIZE + 10), MAX_FONT_SIZE);
+});
+
+test('clampFontWeight respects the minimum', () => {
+  assert.equal(clampFontWeight(MIN_FONT_WEIGHT - 100), MIN_FONT_WEIGHT);
+});
+
+test('clampFontWeight respects the maximum', () => {
+  assert.equal(clampFontWeight(MAX_FONT_WEIGHT + 100), MAX_FONT_WEIGHT);
+});
+
+test('clampFontWeight rounds to nearest step', () => {
+  assert.equal(clampFontWeight(350), 400);
+  assert.equal(clampFontWeight(249), 200);
+});
+
+test('parseStoredFontWeight returns default for null', () => {
+  assert.equal(parseStoredFontWeight(null), DEFAULT_FONT_WEIGHT);
+});
+
+test('parseStoredFontWeight parses valid weight strings', () => {
+  assert.equal(parseStoredFontWeight('700'), 700);
+  assert.equal(parseStoredFontWeight('200'), 200);
+});
+
+test('parseStoredFontWeight returns default for non-numeric strings', () => {
+  assert.equal(parseStoredFontWeight('abc'), DEFAULT_FONT_WEIGHT);
+});
+
+test('parseStoredFontItalic returns false for null', () => {
+  assert.equal(parseStoredFontItalic(null), false);
+});
+
+test('parseStoredFontItalic returns true for "true"', () => {
+  assert.equal(parseStoredFontItalic('true'), true);
+});
+
+test('parseStoredFontItalic returns false for other strings', () => {
+  assert.equal(parseStoredFontItalic('false'), false);
+  assert.equal(parseStoredFontItalic('yes'), false);
 });
 
 test('normalizeTheme defaults unknown values to light', () => {
