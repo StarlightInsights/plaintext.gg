@@ -7,15 +7,17 @@
 /** @typedef {import('./shared.js').SessionDraft} SessionDraft */
 /** @typedef {import('./shared.js').SyncMessage} SyncMessage */
 /** @typedef {import('./shared.js').Theme} Theme */
+/** @typedef {import('./shared.js').FontFamily} FontFamily */
 
 import {
   STORAGE_KEYS, SESSION_KEYS, DEFAULT_FONT_SIZE, FONT_STEP,
   MIN_FONT_SIZE, MAX_FONT_SIZE, DEFAULT_FONT_WEIGHT,
+  DEFAULT_FONT_FAMILY, FONT_FAMILY_WEIGHTS,
   COPY_FEEDBACK_MS, PERSIST_DELAY_MS,
   SYNC_CHANNEL, THEME_COLORS, clampFontSize, parseStoredFontSize,
   clampFontWeight, parseStoredFontWeight, parseStoredFontItalic,
-  normalizeTheme, normalizeToolbarVisibility, compareVersions,
-  isVersionNewer, toVersion, createRecord
+  normalizeFontFamily, normalizeTheme, normalizeToolbarVisibility,
+  compareVersions, isVersionNewer, toVersion, createRecord
 } from './shared.js';
 
 (function () {
@@ -362,6 +364,11 @@ import {
   var btnSettings = /** @type {HTMLButtonElement} */ (document.getElementById('btn-settings'));
   var dialogSettings = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-settings'));
   var fontSizeValue = /** @type {HTMLElement} */ (document.getElementById('font-size-value'));
+  var btnFontMono = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-mono'));
+  var btnFontSans = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-sans'));
+  var btnFontSerif = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-serif'));
+  var btnFontDyslexic = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-dyslexic'));
+  var fontButtons = [btnFontMono, btnFontSans, btnFontSerif, btnFontDyslexic];
   var btnWeightLight = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-light'));
   var btnWeightRegular = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-regular'));
   var btnWeightBold = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-bold'));
@@ -386,6 +393,8 @@ import {
   var fontWeight = parseStoredFontWeight(loadStored(STORAGE_KEYS.fontWeight));
   /** @type {boolean} */
   var fontItalic = parseStoredFontItalic(loadStored(STORAGE_KEYS.fontItalic));
+  /** @type {FontFamily} */
+  var fontFamily = normalizeFontFamily(loadStored(STORAGE_KEYS.fontFamily));
 
   /** @type {string} */
   var tabId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2);
@@ -443,7 +452,10 @@ import {
    * @returns {void}
    */
   function applyFontWeight() {
-    editorEl.style.fontWeight = String(fontWeight);
+    // Map abstract weight to actual CSS weight for this font
+    var weightMap = FONT_WEIGHT_MAP[fontFamily] || FONT_WEIGHT_MAP['mono'];
+    var slot = fontWeight === 200 ? 0 : fontWeight === 600 ? 2 : 1;
+    editorEl.style.fontWeight = String(weightMap[slot]);
     for (var i = 0; i < weightButtons.length; i++) {
       var active = Number(weightButtons[i].getAttribute('data-weight')) === fontWeight;
       weightButtons[i].setAttribute('aria-checked', active ? 'true' : 'false');
@@ -458,6 +470,62 @@ import {
     editorEl.style.fontStyle = fontItalic ? 'italic' : 'normal';
     btnItalic.setAttribute('aria-checked', fontItalic ? 'true' : 'false');
     btnItalic.textContent = fontItalic ? 'on' : 'off';
+  }
+
+  /**
+   * CSS custom property name for each font family stack.
+   * @type {Readonly<Record<string, string>>}
+   */
+  var FONT_CSS_VAR = {
+    'mono': '--font-mono',
+    'sans-serif': '--font-sans',
+    'serif': '--font-serif',
+    'dyslexic': '--font-dyslexic'
+  };
+
+  /**
+   * Weight mapping: maps the abstract weight slots (light/regular/bold)
+   * to the actual CSS font-weight values for each font family.
+   * Index 0 = light, 1 = regular, 2 = bold.
+   * @type {Readonly<Record<FontFamily, ReadonlyArray<number>>>}
+   */
+  var FONT_WEIGHT_MAP = {
+    'mono': [200, 300, 600],
+    'sans-serif': [200, 300, 400],
+    'serif': [400, 400, 500],
+    'dyslexic': [400, 400, 700]
+  };
+
+  /**
+   * Apply the current font family to the editor and update the settings UI.
+   * Also updates weight button states for fonts with limited weight support.
+   * @returns {void}
+   */
+  function applyFontFamily() {
+    var cssVar = FONT_CSS_VAR[fontFamily] || FONT_CSS_VAR['mono'];
+    document.documentElement.style.setProperty('--font-main', 'var(' + cssVar + ')');
+
+    // Update font family radio buttons
+    for (var i = 0; i < fontButtons.length; i++) {
+      var active = fontButtons[i].getAttribute('data-font') === fontFamily;
+      fontButtons[i].setAttribute('aria-checked', active ? 'true' : 'false');
+    }
+
+    // Enable/disable weight buttons based on font family support
+    var supported = FONT_FAMILY_WEIGHTS[fontFamily] || FONT_FAMILY_WEIGHTS['mono'];
+    for (var j = 0; j < weightButtons.length; j++) {
+      var w = Number(weightButtons[j].getAttribute('data-weight'));
+      var isSupported = false;
+      for (var k = 0; k < supported.length; k++) {
+        if (supported[k] === w) { isSupported = true; break; }
+      }
+      weightButtons[j].disabled = !isSupported;
+    }
+
+    // Map abstract weight to actual CSS weight for this font
+    var weightMap = FONT_WEIGHT_MAP[fontFamily] || FONT_WEIGHT_MAP['mono'];
+    var slot = fontWeight === 200 ? 0 : fontWeight === 600 ? 2 : 1;
+    editorEl.style.fontWeight = String(weightMap[slot]);
   }
 
   /**
@@ -763,6 +831,13 @@ import {
       return;
     }
 
+    if (e.key === STORAGE_KEYS.fontFamily) {
+      fontFamily = normalizeFontFamily(e.newValue);
+      applyFontFamily();
+      applyFontWeight();
+      return;
+    }
+
     if (e.key === STORAGE_KEYS.fontSize) {
       var next = parseStoredFontSize(e.newValue);
       fontSize = Number.isFinite(next) ? clampFontSize(next) : DEFAULT_FONT_SIZE;
@@ -856,6 +931,7 @@ import {
   function init() {
     // Apply initial state
     applyTheme();
+    applyFontFamily();
     applyFontSize();
     applyFontWeight();
     applyFontItalic();
@@ -894,6 +970,27 @@ import {
       applyFontWeight();
     }
 
+    for (var _fi = 0; _fi < fontButtons.length; _fi++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          fontFamily = /** @type {FontFamily} */ (btn.getAttribute('data-font')) || DEFAULT_FONT_FAMILY;
+          // If current weight is unsupported by the new font, bump to regular (300)
+          var supported = FONT_FAMILY_WEIGHTS[fontFamily] || FONT_FAMILY_WEIGHTS['mono'];
+          var weightSupported = false;
+          for (var k = 0; k < supported.length; k++) {
+            if (supported[k] === fontWeight) { weightSupported = true; break; }
+          }
+          if (!weightSupported) {
+            fontWeight = 300;
+            saveStored(STORAGE_KEYS.fontWeight, String(fontWeight));
+            applyFontWeight();
+          }
+          saveStored(STORAGE_KEYS.fontFamily, fontFamily);
+          applyFontFamily();
+        });
+      })(fontButtons[_fi]);
+    }
+
     for (var _wi = 0; _wi < weightButtons.length; _wi++) {
       (function (btn) {
         btn.addEventListener('click', function () {
@@ -909,12 +1006,15 @@ import {
     });
 
     btnReset.addEventListener('click', function () {
+      fontFamily = DEFAULT_FONT_FAMILY;
       fontSize = DEFAULT_FONT_SIZE;
       fontWeight = DEFAULT_FONT_WEIGHT;
       fontItalic = false;
+      saveStored(STORAGE_KEYS.fontFamily, fontFamily);
       saveStored(STORAGE_KEYS.fontSize, String(fontSize));
       saveStored(STORAGE_KEYS.fontWeight, String(fontWeight));
       saveStored(STORAGE_KEYS.fontItalic, String(fontItalic));
+      applyFontFamily();
       applyFontSize();
       applyFontWeight();
       applyFontItalic();

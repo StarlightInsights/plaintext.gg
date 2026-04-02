@@ -41,6 +41,10 @@
  * @typedef {'light' | 'dark'} Theme
  */
 
+/**
+ * @typedef {'mono' | 'sans-serif' | 'serif' | 'dyslexic'} FontFamily
+ */
+
 // ---- Constants ----
 
 /** @type {number} */
@@ -61,6 +65,10 @@ export var MAX_FONT_WEIGHT = 600;
 export var FONT_WEIGHT_STEP = 100;
 /** @type {ReadonlyArray<number>} */
 export var FONT_WEIGHTS = [200, 300, 600];
+/** @type {FontFamily} */
+export var DEFAULT_FONT_FAMILY = 'mono';
+/** @type {ReadonlyArray<FontFamily>} */
+export var FONT_FAMILIES = ['mono', 'sans-serif', 'serif', 'dyslexic'];
 /** @type {number} */
 export var COPY_FEEDBACK_MS = 400;
 /** @type {number} */
@@ -68,10 +76,11 @@ export var PERSIST_DELAY_MS = 300;
 /** @type {string} */
 export var SYNC_CHANNEL = 'plaintext:text-sync';
 
-/** @type {Readonly<{ theme: string, fontSize: string, fontWeight: string, fontItalic: string, toolbarIcons: string }>} */
+/** @type {Readonly<{ theme: string, fontSize: string, fontFamily: string, fontWeight: string, fontItalic: string, toolbarIcons: string }>} */
 export var STORAGE_KEYS = {
   theme: 'plaintext:theme',
   fontSize: 'plaintext:fontSize',
+  fontFamily: 'plaintext:fontFamily',
   fontWeight: 'plaintext:fontWeight',
   fontItalic: 'plaintext:fontItalic',
   toolbarIcons: 'plaintext:toolbarIcons'
@@ -140,6 +149,27 @@ export function parseStoredFontWeight(v) {
 export function parseStoredFontItalic(v) {
   return v === 'true';
 }
+
+/**
+ * Normalize a stored font family string to a valid FontFamily value.
+ * @param {string | null} v
+ * @returns {FontFamily}
+ */
+export function normalizeFontFamily(v) {
+  if (v === 'sans-serif' || v === 'serif' || v === 'dyslexic') return v;
+  return 'mono';
+}
+
+/**
+ * Map of font families to supported abstract weight slots (200=light, 300=regular, 600=bold).
+ * @type {Readonly<Record<FontFamily, ReadonlyArray<number>>>}
+ */
+export var FONT_FAMILY_WEIGHTS = {
+  'mono': [200, 300, 600],
+  'sans-serif': [200, 300, 600],
+  'serif': [300, 600],
+  'dyslexic': [300, 600]
+};
 
 /**
  * Normalize a stored theme string to a valid Theme value.
