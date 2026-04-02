@@ -10,8 +10,11 @@
 
 import {
   STORAGE_KEYS, SESSION_KEYS, DEFAULT_FONT_SIZE, FONT_STEP,
-  MIN_FONT_SIZE, MAX_FONT_SIZE, COPY_FEEDBACK_MS, PERSIST_DELAY_MS,
+  MIN_FONT_SIZE, MAX_FONT_SIZE, DEFAULT_FONT_WEIGHT,
+  MIN_FONT_WEIGHT, MAX_FONT_WEIGHT, FONT_WEIGHT_STEP,
+  COPY_FEEDBACK_MS, PERSIST_DELAY_MS,
   SYNC_CHANNEL, THEME_COLORS, clampFontSize, parseStoredFontSize,
+  clampFontWeight, parseStoredFontWeight, parseStoredFontItalic,
   normalizeTheme, normalizeToolbarVisibility, compareVersions,
   isVersionNewer, toVersion, createRecord
 } from './shared.js';
@@ -357,6 +360,14 @@ import {
   var iconThemeDark = /** @type {HTMLElement} */ (document.getElementById('icon-theme-dark'));
   var iconEyeOpen = /** @type {HTMLElement} */ (document.getElementById('icon-eye-open'));
   var iconEyeClosed = /** @type {HTMLElement} */ (document.getElementById('icon-eye-closed'));
+  var btnSettings = /** @type {HTMLButtonElement} */ (document.getElementById('btn-settings'));
+  var dialogSettings = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-settings'));
+  var fontSizeValue = /** @type {HTMLElement} */ (document.getElementById('font-size-value'));
+  var btnWeightUp = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-up'));
+  var btnWeightDown = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-down'));
+  var fontWeightValue = /** @type {HTMLElement} */ (document.getElementById('font-weight-value'));
+  var btnItalic = /** @type {HTMLButtonElement} */ (document.getElementById('btn-italic'));
+  var btnReset = /** @type {HTMLButtonElement} */ (document.getElementById('btn-reset'));
 
   // ---- State ----
 
@@ -371,6 +382,10 @@ import {
   /** @type {number} */
   var _storedSize = parseStoredFontSize(loadStored(STORAGE_KEYS.fontSize));
   if (Number.isFinite(_storedSize)) fontSize = clampFontSize(_storedSize);
+  /** @type {number} */
+  var fontWeight = parseStoredFontWeight(loadStored(STORAGE_KEYS.fontWeight));
+  /** @type {boolean} */
+  var fontItalic = parseStoredFontItalic(loadStored(STORAGE_KEYS.fontItalic));
 
   /** @type {string} */
   var tabId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2);
@@ -420,6 +435,28 @@ import {
     editorEl.style.fontSize = fontSize + 'px';
     btnFontUp.disabled = fontSize >= MAX_FONT_SIZE;
     btnFontDown.disabled = fontSize <= MIN_FONT_SIZE;
+    fontSizeValue.textContent = fontSize + 'px';
+  }
+
+  /**
+   * Apply the current font weight to the editor and update the settings UI.
+   * @returns {void}
+   */
+  function applyFontWeight() {
+    editorEl.style.fontWeight = String(fontWeight);
+    btnWeightUp.disabled = fontWeight >= MAX_FONT_WEIGHT;
+    btnWeightDown.disabled = fontWeight <= MIN_FONT_WEIGHT;
+    fontWeightValue.textContent = String(fontWeight);
+  }
+
+  /**
+   * Apply the current italic setting to the editor and update the settings UI.
+   * @returns {void}
+   */
+  function applyFontItalic() {
+    editorEl.style.fontStyle = fontItalic ? 'italic' : 'normal';
+    btnItalic.setAttribute('aria-checked', fontItalic ? 'true' : 'false');
+    btnItalic.textContent = fontItalic ? 'on' : 'off';
   }
 
   /**
@@ -729,6 +766,18 @@ import {
       var next = parseStoredFontSize(e.newValue);
       fontSize = Number.isFinite(next) ? clampFontSize(next) : DEFAULT_FONT_SIZE;
       applyFontSize();
+      return;
+    }
+
+    if (e.key === STORAGE_KEYS.fontWeight) {
+      fontWeight = parseStoredFontWeight(e.newValue);
+      applyFontWeight();
+      return;
+    }
+
+    if (e.key === STORAGE_KEYS.fontItalic) {
+      fontItalic = parseStoredFontItalic(e.newValue);
+      applyFontItalic();
     }
   }
 
@@ -807,13 +856,17 @@ import {
     // Apply initial state
     applyTheme();
     applyFontSize();
+    applyFontWeight();
+    applyFontItalic();
     applyToolbarVisibility(false);
 
     // Setup dialogs
     setupDialog(dialogInfo);
+    setupDialog(dialogSettings);
 
     // Button events
     btnInfo.addEventListener('click', function () { openDialog(dialogInfo); });
+    btnSettings.addEventListener('click', function () { openDialog(dialogSettings); });
 
     /**
      * Adjust the font size by a delta and persist the new value.
@@ -828,6 +881,38 @@ import {
 
     btnFontUp.addEventListener('click', function () { changeFontSize(FONT_STEP); });
     btnFontDown.addEventListener('click', function () { changeFontSize(-FONT_STEP); });
+
+    /**
+     * Adjust the font weight by a delta and persist the new value.
+     * @param {number} delta
+     * @returns {void}
+     */
+    function changeFontWeight(delta) {
+      fontWeight = clampFontWeight(fontWeight + delta);
+      saveStored(STORAGE_KEYS.fontWeight, String(fontWeight));
+      applyFontWeight();
+    }
+
+    btnWeightUp.addEventListener('click', function () { changeFontWeight(FONT_WEIGHT_STEP); });
+    btnWeightDown.addEventListener('click', function () { changeFontWeight(-FONT_WEIGHT_STEP); });
+
+    btnItalic.addEventListener('click', function () {
+      fontItalic = !fontItalic;
+      saveStored(STORAGE_KEYS.fontItalic, String(fontItalic));
+      applyFontItalic();
+    });
+
+    btnReset.addEventListener('click', function () {
+      fontSize = DEFAULT_FONT_SIZE;
+      fontWeight = DEFAULT_FONT_WEIGHT;
+      fontItalic = false;
+      saveStored(STORAGE_KEYS.fontSize, String(fontSize));
+      saveStored(STORAGE_KEYS.fontWeight, String(fontWeight));
+      saveStored(STORAGE_KEYS.fontItalic, String(fontItalic));
+      applyFontSize();
+      applyFontWeight();
+      applyFontItalic();
+    });
 
     btnSave.addEventListener('click', function () { downloadFile(text); });
 
