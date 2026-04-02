@@ -66,7 +66,7 @@ export var PERSIST_DELAY_MS = 300;
 /** @type {string} */
 export var SYNC_CHANNEL = 'plaintext:text-sync';
 
-/** @type {Readonly<{ theme: string, fontSize: string, toolbarIcons: string }>} */
+/** @type {Readonly<{ theme: string, fontSize: string, fontWeight: string, fontItalic: string, toolbarIcons: string }>} */
 export var STORAGE_KEYS = {
   theme: 'plaintext:theme',
   fontSize: 'plaintext:fontSize',
