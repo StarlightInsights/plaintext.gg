@@ -1214,3 +1214,71 @@ test.describe('File upload', () => {
     await expect(editor).toHaveValue('alpha\nbeta');
   });
 });
+
+// ============================================================
+// TOOLBAR RESPONSIVE LAYOUT
+// ============================================================
+
+test.describe('Toolbar responsive layout', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    // Show the toolbar
+    await page.locator('#btn-toggle-desktop').click();
+    await expect(page.locator('#toolbar')).not.toHaveClass(/hidden/);
+  });
+
+  test('mobile: toolbar-nav and toolbar-controls use display:contents', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    const nav = page.locator('.toolbar-nav');
+    const controls = page.locator('.toolbar-controls');
+    const navDisplay = await nav.evaluate((el) => getComputedStyle(el).display);
+    const controlsDisplay = await controls.evaluate((el) => getComputedStyle(el).display);
+    expect(navDisplay).toBe('contents');
+    expect(controlsDisplay).toBe('contents');
+  });
+
+  test('mobile: all toolbar buttons sit in a single row', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    const buttons = page.locator('.toolbar button.btn-icon');
+    const tops = await buttons.evaluateAll((els) =>
+      els.filter((el) => getComputedStyle(el).display !== 'none')
+        .map((el) => el.getBoundingClientRect().top)
+    );
+    expect(tops.length).toBeGreaterThan(1);
+    const firstTop = tops[0];
+    for (const top of tops) {
+      expect(top).toBe(firstTop);
+    }
+  });
+
+  test('mobile: toolbar uses justify-content start', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    const toolbar = page.locator('#toolbar');
+    const justify = await toolbar.evaluate((el) => getComputedStyle(el).justifyContent);
+    expect(justify).toBe('start');
+  });
+
+  test('desktop: toolbar-nav and toolbar-controls are flex containers', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 600 });
+    const nav = page.locator('.toolbar-nav');
+    const controls = page.locator('.toolbar-controls');
+    const navDisplay = await nav.evaluate((el) => getComputedStyle(el).display);
+    const controlsDisplay = await controls.evaluate((el) => getComputedStyle(el).display);
+    expect(navDisplay).toBe('flex');
+    expect(controlsDisplay).toBe('flex');
+  });
+
+  test('desktop: toolbar uses justify-content space-between', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 600 });
+    const toolbar = page.locator('#toolbar');
+    const justify = await toolbar.evaluate((el) => getComputedStyle(el).justifyContent);
+    expect(justify).toBe('space-between');
+  });
+
+  test('desktop: info button is on the left, controls on the right', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 600 });
+    const navBox = await page.locator('.toolbar-nav').boundingBox();
+    const controlsBox = await page.locator('.toolbar-controls').boundingBox();
+    expect(navBox.x).toBeLessThan(controlsBox.x);
+  });
+});

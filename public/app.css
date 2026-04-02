@@ -505,16 +505,15 @@ main.dragover::after {
 
 @media (max-width: 639px) {
   .toolbar {
-    align-items: flex-start;
+    justify-content: start;
     padding: 12px;
     font-size: 1rem;
+    gap: 4px;
   }
 
+  .toolbar-nav,
   .toolbar-controls {
-    margin-inline-start: 0;
-    width: 100%;
-    justify-content: flex-start;
-    gap: 4px;
+    display: contents;
   }
 
   .btn-icon {
