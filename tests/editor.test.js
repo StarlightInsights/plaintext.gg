@@ -36,17 +36,21 @@ test('clampFontSize respects the maximum', () => {
   assert.equal(clampFontSize(MAX_FONT_SIZE + 10), MAX_FONT_SIZE);
 });
 
-test('clampFontWeight respects the minimum', () => {
-  assert.equal(clampFontWeight(MIN_FONT_WEIGHT - 100), MIN_FONT_WEIGHT);
+test('clampFontWeight snaps below minimum to nearest valid weight', () => {
+  assert.equal(clampFontWeight(100), MIN_FONT_WEIGHT);
 });
 
-test('clampFontWeight respects the maximum', () => {
-  assert.equal(clampFontWeight(MAX_FONT_WEIGHT + 100), MAX_FONT_WEIGHT);
+test('clampFontWeight snaps above maximum to nearest valid weight', () => {
+  assert.equal(clampFontWeight(800), MAX_FONT_WEIGHT);
 });
 
-test('clampFontWeight rounds to nearest step', () => {
+test('clampFontWeight snaps to nearest valid weight', () => {
   assert.equal(clampFontWeight(350), 400);
   assert.equal(clampFontWeight(249), 200);
+  assert.equal(clampFontWeight(551), 700);
+  assert.equal(clampFontWeight(500), 400);
+  assert.equal(clampFontWeight(600), 700);
+  assert.equal(clampFontWeight(300), 200);
 });
 
 test('parseStoredFontWeight returns default for null', () => {

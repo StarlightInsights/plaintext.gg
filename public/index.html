@@ -192,14 +192,10 @@
             </div>
             <div class="setting">
               <span class="setting-label">weight</span>
-              <div class="setting-control">
-                <button type="button" class="btn setting-step" aria-label="Decrease font weight" id="btn-weight-down">
-                  <svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H40a12,12,0,0,1,0-24H216A12,12,0,0,1,228,128Z"></path></svg>
-                </button>
-                <span class="setting-value" id="font-weight-value">400</span>
-                <button type="button" class="btn setting-step" aria-label="Increase font weight" id="btn-weight-up">
-                  <svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg>
-                </button>
+              <div class="setting-control setting-control--group">
+                <button type="button" class="setting-toggle" id="btn-weight-light" role="radio" aria-checked="false" data-weight="200">light</button>
+                <button type="button" class="setting-toggle" id="btn-weight-regular" role="radio" aria-checked="true" data-weight="400">regular</button>
+                <button type="button" class="setting-toggle" id="btn-weight-bold" role="radio" aria-checked="false" data-weight="700">bold</button>
               </div>
             </div>
             <div class="setting">

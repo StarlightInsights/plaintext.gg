@@ -1,10 +1,54 @@
+/* ---- Editor font: 3 weights × 2 styles ---- */
+
 @font-face {
-  font-family: "CommitMono-300";
-  src: url("/fonts/CommitMono-300-Regular.woff2") format("woff2");
+  font-family: "CommitMono";
+  src: url("/fonts/CommitMono-200-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono";
+  src: url("/fonts/CommitMono-200-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono";
+  src: url("/fonts/CommitMono-400-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
 }
+
+@font-face {
+  font-family: "CommitMono";
+  src: url("/fonts/CommitMono-400-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono";
+  src: url("/fonts/CommitMono-700-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CommitMono";
+  src: url("/fonts/CommitMono-700-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ---- UI fonts ---- */
 
 @font-face {
   font-family: "CommitMono-250";
@@ -25,7 +69,7 @@
 /* ---- Design tokens ---- */
 
 :root {
-  --font-main: "CommitMono-300", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-main: "CommitMono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-header: "CommitMono-250", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-dialog: "CommitMono-200", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --icon-size: 1.25rem;
@@ -449,6 +493,14 @@ main.dragover::after {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.setting-control--group {
+  gap: 0;
+}
+
+.setting-control--group .setting-toggle + .setting-toggle {
+  margin-left: -1px;
 }
 
 .setting-value {
