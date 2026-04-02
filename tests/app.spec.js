@@ -631,12 +631,12 @@ test.describe('Cross-tab localStorage sync', () => {
     await page.evaluate(() => {
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'plaintext:fontWeight',
-        newValue: '700',
+        newValue: '600',
         storageArea: localStorage,
       }));
     });
     const weight = await page.locator('#editor').evaluate((el) => el.style.fontWeight);
-    expect(weight).toBe('700');
+    expect(weight).toBe('600');
   });
 
   test('font italic syncs via storage event', async ({ page }) => {
@@ -685,23 +685,23 @@ test.describe('Settings dialog', () => {
     await expect(page.locator('#btn-weight-bold')).toHaveAttribute('aria-checked', 'false');
   });
 
-  test('font weight regular button sets weight to 400', async ({ page }) => {
+  test('font weight regular button sets weight to 300', async ({ page }) => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
     // First switch to light, then back to regular
     await page.locator('#btn-weight-light').click();
     await page.locator('#btn-weight-regular').click();
     const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
-    expect(weight).toBe(400);
+    expect(weight).toBe(300);
     await expect(page.locator('#btn-weight-regular')).toHaveAttribute('aria-checked', 'true');
   });
 
-  test('font weight bold button sets weight to 700', async ({ page }) => {
+  test('font weight bold button sets weight to 600', async ({ page }) => {
     await page.goto('/');
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
     await page.locator('#btn-weight-bold').click();
     const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
-    expect(weight).toBe(700);
+    expect(weight).toBe(600);
     await expect(page.locator('#btn-weight-bold')).toHaveAttribute('aria-checked', 'true');
     await expect(page.locator('#btn-weight-regular')).toHaveAttribute('aria-checked', 'false');
     await expect(page.locator('#btn-weight-light')).toHaveAttribute('aria-checked', 'false');
@@ -714,7 +714,7 @@ test.describe('Settings dialog', () => {
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     const weight = await page.locator('#editor').evaluate((el) => parseInt(el.style.fontWeight));
-    expect(weight).toBe(700);
+    expect(weight).toBe(600);
   });
 
   test('italic toggle works', async ({ page }) => {
@@ -755,7 +755,7 @@ test.describe('Settings dialog', () => {
     const weight = await editor.evaluate((el) => parseInt(el.style.fontWeight));
     const style = await editor.evaluate((el) => el.style.fontStyle);
     expect(size).toBe(16);
-    expect(weight).toBe(400);
+    expect(weight).toBe(300);
     expect(style).toBe('normal');
     await expect(page.locator('#btn-italic')).toHaveText('off');
   });
@@ -774,7 +774,7 @@ test.describe('Settings dialog', () => {
     const weight = await editor.evaluate((el) => parseInt(el.style.fontWeight));
     const style = await editor.evaluate((el) => el.style.fontStyle);
     expect(size).toBe(16);
-    expect(weight).toBe(400);
+    expect(weight).toBe(300);
     expect(style).toBe('normal');
   });
 });

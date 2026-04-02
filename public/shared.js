@@ -52,15 +52,15 @@ export var MIN_FONT_SIZE = 10;
 /** @type {number} */
 export var MAX_FONT_SIZE = 34;
 /** @type {number} */
-export var DEFAULT_FONT_WEIGHT = 400;
+export var DEFAULT_FONT_WEIGHT = 300;
 /** @type {number} */
 export var MIN_FONT_WEIGHT = 200;
 /** @type {number} */
-export var MAX_FONT_WEIGHT = 700;
+export var MAX_FONT_WEIGHT = 600;
 /** @type {number} */
 export var FONT_WEIGHT_STEP = 100;
 /** @type {ReadonlyArray<number>} */
-export var FONT_WEIGHTS = [200, 400, 700];
+export var FONT_WEIGHTS = [200, 300, 600];
 /** @type {number} */
 export var COPY_FEEDBACK_MS = 400;
 /** @type {number} */

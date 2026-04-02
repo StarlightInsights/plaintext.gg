@@ -18,33 +18,33 @@
 
 @font-face {
   font-family: "CommitMono";
-  src: url("/fonts/CommitMono-400-Regular.woff2") format("woff2");
+  src: url("/fonts/CommitMono-300-Regular.woff2") format("woff2");
   font-style: normal;
-  font-weight: 400;
+  font-weight: 300;
   font-display: swap;
 }
 
 @font-face {
   font-family: "CommitMono";
-  src: url("/fonts/CommitMono-400-Italic.woff2") format("woff2");
+  src: url("/fonts/CommitMono-300-Italic.woff2") format("woff2");
   font-style: italic;
-  font-weight: 400;
+  font-weight: 300;
   font-display: swap;
 }
 
 @font-face {
   font-family: "CommitMono";
-  src: url("/fonts/CommitMono-700-Regular.woff2") format("woff2");
+  src: url("/fonts/CommitMono-600-Regular.woff2") format("woff2");
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
   font-display: swap;
 }
 
 @font-face {
   font-family: "CommitMono";
-  src: url("/fonts/CommitMono-700-Italic.woff2") format("woff2");
+  src: url("/fonts/CommitMono-600-Italic.woff2") format("woff2");
   font-style: italic;
-  font-weight: 700;
+  font-weight: 600;
   font-display: swap;
 }
 
