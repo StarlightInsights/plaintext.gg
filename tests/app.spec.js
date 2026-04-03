@@ -421,6 +421,95 @@ test.describe('Dialogs', () => {
 });
 
 // ============================================================
+// 6b. DIALOG LAYOUT
+// ============================================================
+
+test.describe('Dialog layout', () => {
+  test('about dialog is wider than settings dialog', async ({ page }) => {
+    await page.goto('/');
+
+    await page.locator('#dialog-info').evaluate(el => el.showModal());
+    const aboutWidth = await page.locator('#dialog-info').evaluate(el => el.offsetWidth);
+    await page.locator('#dialog-info').evaluate(el => el.close());
+
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    const settingsWidth = await page.locator('#dialog-settings').evaluate(el => el.offsetWidth);
+    await page.locator('#dialog-settings').evaluate(el => el.close());
+
+    expect(aboutWidth).toBeGreaterThan(settingsWidth);
+  });
+
+  test('dialogs have equal left and right margins', async ({ page }) => {
+    await page.setViewportSize({ width: 480, height: 800 });
+    await page.goto('/');
+
+    for (const id of ['dialog-settings', 'dialog-info']) {
+      await page.locator(`#${id}`).evaluate(el => el.showModal());
+      await page.waitForTimeout(300);
+      const box = await page.locator(`#${id}`).boundingBox();
+      const rightGap = 480 - box.x - box.width;
+      expect(box.x).toBeCloseTo(rightGap, 0);
+      await page.locator(`#${id}`).evaluate(el => el.close());
+      await page.waitForTimeout(200);
+    }
+  });
+
+  test('dialogs respect minimum margin on very small screens', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.goto('/');
+
+    for (const id of ['dialog-settings', 'dialog-info']) {
+      await page.locator(`#${id}`).evaluate(el => el.showModal());
+      await page.waitForTimeout(300);
+      const box = await page.locator(`#${id}`).boundingBox();
+      const leftGap = box.x;
+      const rightGap = 320 - box.x - box.width;
+      expect(leftGap).toBeGreaterThanOrEqual(7);
+      expect(rightGap).toBeGreaterThanOrEqual(7);
+      expect(leftGap).toBeCloseTo(rightGap, 0);
+      await page.locator(`#${id}`).evaluate(el => el.close());
+      await page.waitForTimeout(200);
+    }
+  });
+
+  test('font selector buttons fill the full width', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await page.waitForTimeout(300);
+
+    const groupWidth = await page.locator('.setting-control--group:first-child').evaluate(el => el.offsetWidth);
+    const parentWidth = await page.locator('.setting-control--group:first-child').evaluate(el => el.parentElement.offsetWidth);
+    // The font selector group should fill its parent
+    expect(groupWidth).toBe(parentWidth);
+  });
+
+  test('weight buttons do not fill the full width', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await page.waitForTimeout(300);
+
+    const weightSetting = page.locator('.setting').filter({ hasText: 'weight' });
+    const groupWidth = await weightSetting.locator('.setting-control--group').evaluate(el => el.offsetWidth);
+    const parentWidth = await weightSetting.evaluate(el => el.offsetWidth);
+    // The weight group should NOT fill its parent (label takes space)
+    expect(groupWidth).toBeLessThan(parentWidth);
+  });
+
+  test('sans-serif button text does not wrap', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.goto('/');
+    await page.locator('#dialog-settings').evaluate(el => el.showModal());
+    await page.waitForTimeout(300);
+
+    const btn = page.locator('#btn-font-sans');
+    const height = await btn.evaluate(el => el.offsetHeight);
+    // Single line of text at ~13px font + 4px padding top/bottom ≈ 25px
+    // If it wraps, height would roughly double
+    expect(height).toBeLessThan(40);
+  });
+});
+
+// ============================================================
 // 7. COPY BUTTON
 // ============================================================
 

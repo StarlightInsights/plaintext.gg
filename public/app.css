@@ -487,8 +487,9 @@ main.dragover::after {
 
 .dialog {
   margin: auto;
-  width: min(22rem, calc(100vw - 2rem));
-  max-height: calc(100dvh - 1rem);
+  width: 26rem;
+  max-width: calc(100% - 16px);
+  max-height: calc(100dvh - 16px);
   overflow-y: auto;
   border: 1px solid var(--panel-border);
   background-color: var(--panel-bg);
@@ -503,6 +504,10 @@ main.dragover::after {
     background-color var(--duration-slow) ease-out,
     border-color var(--duration-slow) ease-out,
     color var(--duration-slow) ease-out;
+}
+
+#dialog-info {
+  width: 28rem;
 }
 
 .dialog[open] {
@@ -624,6 +629,14 @@ main.dragover::after {
   gap: 0;
 }
 
+.setting-control--group:only-child {
+  flex: 1;
+}
+
+.setting-control--group:only-child .setting-toggle {
+  flex: 1 1 auto;
+}
+
 .setting-control--group .setting-toggle + .setting-toggle {
   margin-left: -1px;
 }
@@ -656,6 +669,7 @@ main.dragover::after {
   cursor: pointer;
   min-width: 3rem;
   text-align: center;
+  white-space: nowrap;
   transition: color var(--duration) ease-out, background-color var(--duration) ease-out, border-color var(--duration-slow) ease-out;
 }
 
@@ -704,13 +718,8 @@ main.dragover::after {
     padding: 8px;
   }
 
-
   .toggle-desktop {
     display: none;
-  }
-
-  .dialog {
-    width: min(32rem, calc(100vw - 1rem));
   }
 
   .editor {
