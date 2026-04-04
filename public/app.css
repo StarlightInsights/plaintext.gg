@@ -234,6 +234,7 @@ html[data-theme="dark"] .app-shell,
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
