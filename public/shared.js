@@ -14,7 +14,7 @@
 /**
  * The document shape stored in IndexedDB.
  * @typedef {Object} DocumentRecord
- * @property {'current'} id - Always the literal string 'current'
+ * @property {string} id - Document slug ('current' for root, or the URL slug)
  * @property {string} text - The document content
  * @property {number} updatedAt - Unix timestamp (ms)
  * @property {string} sourceTabId - Tab that last wrote the record
@@ -73,8 +73,10 @@ export var FONT_FAMILIES = ['mono', 'sans-serif', 'serif', 'dyslexic'];
 export var COPY_FEEDBACK_MS = 400;
 /** @type {number} */
 export var PERSIST_DELAY_MS = 300;
-/** @type {string} */
-export var SYNC_CHANNEL = 'plaintext:text-sync';
+/** @type {RegExp} */
+export var SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+/** @type {number} */
+export var MAX_SLUG_LENGTH = 64;
 
 /** @type {Readonly<{ theme: string, fontSize: string, fontFamily: string, fontWeight: string, fontItalic: string, toolbarIcons: string }>} */
 export var STORAGE_KEYS = {
@@ -225,17 +227,55 @@ export function toVersion(v) {
 }
 
 /**
- * Create a DocumentRecord from text and a version vector.
+ * Create a DocumentRecord from text, a version vector, and a document slug.
  * @param {string} text
  * @param {Version} version
+ * @param {string} slug
  * @returns {DocumentRecord}
  */
-export function createRecord(text, version) {
+export function createRecord(text, version, slug) {
   return {
-    id: 'current',
+    id: slug,
     text: text,
     updatedAt: version.updatedAt,
     sourceTabId: version.sourceTabId,
     saveSequence: version.saveSequence
   };
+}
+
+/**
+ * Extract a document slug from a URL pathname.
+ * Returns 'current' for root, the lowercase slug for valid paths,
+ * or null for static files (paths with dots) and invalid slugs.
+ * @param {string} pathname
+ * @returns {string | null}
+ */
+export function getSlugFromPath(pathname) {
+  // Only single-segment paths are valid slugs; multi-segment paths are static assets
+  var stripped = pathname.replace(/^\/+/, '').replace(/\/+$/, '');
+  if (!stripped) return 'current';
+  if (stripped.indexOf('/') !== -1) return null;
+  var segment = stripped.toLowerCase();
+  if (segment.length > MAX_SLUG_LENGTH) return null;
+  if (segment.indexOf('.') !== -1) return null;
+  if (!SLUG_PATTERN.test(segment)) return null;
+  return segment;
+}
+
+/**
+ * Return a slug-scoped BroadcastChannel name.
+ * @param {string} slug
+ * @returns {string}
+ */
+export function syncChannelName(slug) {
+  return 'plaintext:text-sync:' + slug;
+}
+
+/**
+ * Return a slug-scoped sessionStorage key for crash-recovery drafts.
+ * @param {string} slug
+ * @returns {string}
+ */
+export function sessionDraftKey(slug) {
+  return 'plaintext:textDraft:' + slug;
 }
