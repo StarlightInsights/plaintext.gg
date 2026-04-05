@@ -1100,6 +1100,10 @@ import {
       listAllRecords().then(renderDocumentsList).catch(function () {});
     });
 
+    documentsCreateInput.addEventListener('input', function () {
+      documentsCreateInput.value = documentsCreateInput.value.toLowerCase().replace(/\s+/g, '-');
+    });
+
     documentsCreateForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var raw = documentsCreateInput.value.trim().toLowerCase();
