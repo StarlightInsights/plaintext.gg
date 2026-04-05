@@ -55,6 +55,12 @@
           </button>
         </nav>
         <div class="toolbar-controls" role="group" aria-label="Editor controls">
+          <button type="button" class="btn btn-icon" aria-label="Documents" id="btn-documents">
+            <svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+              <path d="M208,72V184a8,8,0,0,1-8,8H176V104L136,64H80V40a8,8,0,0,1,8-8h80Z" opacity="0.2"></path>
+              <path d="M213.66,66.34l-40-40A8,8,0,0,0,168,24H88A16,16,0,0,0,72,40V56H56A16,16,0,0,0,40,72V216a16,16,0,0,0,16,16H168a16,16,0,0,0,16-16V200h16a16,16,0,0,0,16-16V72A8,8,0,0,0,213.66,66.34ZM168,216H56V72h76.69L168,107.31v84.53c0,.06,0,.11,0,.16s0,.1,0,.16V216Zm32-32H184V104a8,8,0,0,0-2.34-5.66l-40-40A8,8,0,0,0,136,56H88V40h76.69L200,75.31Zm-56-32a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h48A8,8,0,0,1,144,152Zm0,32a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h48A8,8,0,0,1,144,184Z"></path>
+            </svg>
+          </button>
           <button type="button" class="btn btn-icon" aria-label="Settings" id="btn-settings">
             <svg class="icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
               <path d="M207.86,123.18l16.78-21a99.14,99.14,0,0,0-10.07-24.29l-26.7-3a81,81,0,0,0-6.81-6.81l-3-26.71a99.43,99.43,0,0,0-24.3-10l-21,16.77a81.59,81.59,0,0,0-9.64,0l-21-16.78A99.14,99.14,0,0,0,77.91,41.43l-3,26.7a81,81,0,0,0-6.81,6.81l-26.71,3a99.43,99.43,0,0,0-10,24.3l16.77,21a81.59,81.59,0,0,0,0,9.64l-16.78,21a99.14,99.14,0,0,0,10.07,24.29l26.7,3a81,81,0,0,0,6.81,6.81l3,26.71a99.43,99.43,0,0,0,24.3,10l21-16.77a81.59,81.59,0,0,0,9.64,0l21,16.78a99.14,99.14,0,0,0,24.29-10.07l3-26.7a81,81,0,0,0,6.81-6.81l26.71-3a99.43,99.43,0,0,0,10-24.3l-16.77-21A81.59,81.59,0,0,0,207.86,123.18ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z" opacity="0.2"></path>
@@ -219,6 +225,26 @@
         </div>
       </dialog>
 
+      <dialog class="dialog" id="dialog-documents" aria-labelledby="dialog-documents-title">
+        <div class="dialog-inner">
+          <div class="dialog-header">
+            <h2 class="dialog-title" id="dialog-documents-title">documents</h2>
+            <button type="button" class="dialog-close" aria-label="Close dialog"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+          </div>
+          <div class="dialog-body">
+            <form class="documents-create" id="documents-create">
+              <input type="text" class="documents-create-input" id="documents-create-input" placeholder="new-document" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?" maxlength="64" title="Lowercase letters, numbers, and hyphens. Must start and end with a letter or number." />
+              <button type="submit" class="setting-toggle documents-create-btn">create</button>
+            </form>
+            <div class="documents-sort setting-control--group">
+              <button type="button" class="setting-toggle" id="btn-sort-alpha" role="radio" aria-checked="true">a-z</button>
+              <button type="button" class="setting-toggle" id="btn-sort-recent" role="radio" aria-checked="false">recent</button>
+            </div>
+            <ul class="documents-list" id="documents-list"></ul>
+            <p class="documents-empty" id="documents-empty" style="display:none">no documents yet</p>
+          </div>
+        </div>
+      </dialog>
 
     </div>
     <script type="module" src="/app.js"></script>

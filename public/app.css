@@ -698,6 +698,95 @@ main.dragover::after {
   margin-top: 4px;
 }
 
+/* ---- Documents dialog ---- */
+
+#dialog-documents {
+  width: 28rem;
+}
+
+.documents-create {
+  display: flex;
+  gap: 0;
+}
+
+.documents-create-input {
+  flex: 1;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-dialog);
+  font-size: 0.8125rem;
+  outline: none;
+  min-width: 0;
+  transition: border-color var(--duration-slow) ease-out, color var(--duration-slow) ease-out;
+}
+
+.documents-create-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.documents-create-input:focus {
+  border-color: var(--text-muted);
+}
+
+.documents-create-input:focus + .documents-create-btn {
+  border-color: var(--text-muted);
+}
+
+.documents-create-btn {
+  margin-left: -1px;
+}
+
+.documents-sort {
+  display: flex;
+  gap: 0;
+}
+
+.documents-sort .setting-toggle {
+  flex: 1;
+}
+
+.documents-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.documents-list a {
+  display: block;
+  padding: 8px 4px;
+  color: var(--text-muted);
+  font-family: var(--font-dialog);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color var(--duration) ease-out, border-color var(--duration-slow) ease-out;
+}
+
+.documents-list li + li a {
+  border-top: 1px solid var(--border);
+}
+
+.documents-list a:hover,
+.documents-list a:focus-visible {
+  color: var(--text-primary);
+  outline: none;
+}
+
+.documents-list a.active {
+  color: var(--text-primary);
+}
+
+.documents-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-dialog);
+  font-size: 0.875rem;
+}
+
 /* ---- Responsive: mobile ---- */
 
 @media (max-width: 639px) {
@@ -705,7 +794,7 @@ main.dragover::after {
     justify-content: start;
     padding: 12px;
     font-size: 1rem;
-    gap: 4px;
+    gap: 2px;
   }
 
   .toolbar-nav,
@@ -715,7 +804,7 @@ main.dragover::after {
 
   .btn-icon {
     min-height: 44px;
-    min-width: 2.75rem;
+    min-width: 2.5rem;
     padding: 8px;
   }
 

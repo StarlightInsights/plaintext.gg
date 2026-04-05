@@ -13,6 +13,9 @@ import {
   compareVersions,
   isVersionNewer,
   createRecord,
+  getSlugFromPath,
+  syncChannelName,
+  sessionDraftKey,
   DEFAULT_FONT_SIZE,
   MIN_FONT_SIZE,
   MAX_FONT_SIZE,
@@ -147,13 +150,30 @@ test('isVersionNewer returns false when versions are equal', () => {
   );
 });
 
-test('createRecord uses the current document id and version', () => {
+test('createRecord uses the given slug as document id', () => {
   assert.deepEqual(
     createRecord('hello', {
       updatedAt: 20,
       sourceTabId: 'tab-a',
       saveSequence: 1
-    }),
+    }, 'my-doc'),
+    {
+      id: 'my-doc',
+      text: 'hello',
+      updatedAt: 20,
+      sourceTabId: 'tab-a',
+      saveSequence: 1
+    }
+  );
+});
+
+test('createRecord with current slug preserves backward compat', () => {
+  assert.deepEqual(
+    createRecord('hello', {
+      updatedAt: 20,
+      sourceTabId: 'tab-a',
+      saveSequence: 1
+    }, 'current'),
     {
       id: 'current',
       text: 'hello',
@@ -210,4 +230,93 @@ test('DEFAULT_FONT_FAMILY equals mono', () => {
 
 test('FONT_FAMILIES contains exactly the four supported families', () => {
   assert.deepEqual(FONT_FAMILIES, ['mono', 'sans-serif', 'serif', 'dyslexic']);
+});
+
+// ---- getSlugFromPath ----
+
+test('getSlugFromPath returns current for root', () => {
+  assert.equal(getSlugFromPath('/'), 'current');
+});
+
+test('getSlugFromPath extracts simple slug', () => {
+  assert.equal(getSlugFromPath('/my-doc'), 'my-doc');
+});
+
+test('getSlugFromPath lowercases the slug', () => {
+  assert.equal(getSlugFromPath('/My-Doc'), 'my-doc');
+});
+
+test('getSlugFromPath returns null for paths with dots (static files)', () => {
+  assert.equal(getSlugFromPath('/app.js'), null);
+  assert.equal(getSlugFromPath('/favicon.ico'), null);
+  assert.equal(getSlugFromPath('/manifest.webmanifest'), null);
+});
+
+test('getSlugFromPath returns null for paths with multiple segments', () => {
+  assert.equal(getSlugFromPath('/fonts/commitmono'), null);
+});
+
+test('getSlugFromPath returns null for slugs with leading hyphen', () => {
+  assert.equal(getSlugFromPath('/-my-doc'), null);
+});
+
+test('getSlugFromPath returns null for slugs with trailing hyphen', () => {
+  assert.equal(getSlugFromPath('/my-doc-'), null);
+});
+
+test('getSlugFromPath returns null for empty segment after slash', () => {
+  assert.equal(getSlugFromPath('/'), 'current');
+});
+
+test('getSlugFromPath accepts alphanumeric with hyphens', () => {
+  assert.equal(getSlugFromPath('/meeting-notes-2024'), 'meeting-notes-2024');
+  assert.equal(getSlugFromPath('/a'), 'a');
+  assert.equal(getSlugFromPath('/123'), '123');
+});
+
+test('getSlugFromPath rejects slugs over 64 chars', () => {
+  var longSlug = '/' + 'a'.repeat(65);
+  assert.equal(getSlugFromPath(longSlug), null);
+});
+
+test('getSlugFromPath accepts slugs of exactly 64 chars', () => {
+  var slug = 'a'.repeat(64);
+  assert.equal(getSlugFromPath('/' + slug), slug);
+});
+
+test('getSlugFromPath rejects special characters', () => {
+  assert.equal(getSlugFromPath('/my_doc'), null);
+  assert.equal(getSlugFromPath('/my doc'), null);
+  assert.equal(getSlugFromPath('/my@doc'), null);
+});
+
+test('getSlugFromPath strips trailing slashes', () => {
+  assert.equal(getSlugFromPath('/my-doc/'), 'my-doc');
+  assert.equal(getSlugFromPath('/my-doc///'), 'my-doc');
+});
+
+test('getSlugFromPath accepts consecutive hyphens', () => {
+  assert.equal(getSlugFromPath('/my--doc'), 'my--doc');
+});
+
+test('getSlugFromPath returns current for bare trailing slashes', () => {
+  assert.equal(getSlugFromPath('///'), 'current');
+});
+
+test('getSlugFromPath rejects single hyphen', () => {
+  assert.equal(getSlugFromPath('/-'), null);
+});
+
+// ---- syncChannelName ----
+
+test('syncChannelName returns scoped channel name', () => {
+  assert.equal(syncChannelName('my-doc'), 'plaintext:text-sync:my-doc');
+  assert.equal(syncChannelName('current'), 'plaintext:text-sync:current');
+});
+
+// ---- sessionDraftKey ----
+
+test('sessionDraftKey returns scoped session key', () => {
+  assert.equal(sessionDraftKey('my-doc'), 'plaintext:textDraft:my-doc');
+  assert.equal(sessionDraftKey('current'), 'plaintext:textDraft:current');
 });

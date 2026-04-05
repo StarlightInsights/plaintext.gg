@@ -14,14 +14,32 @@ import {
   MIN_FONT_SIZE, MAX_FONT_SIZE, DEFAULT_FONT_WEIGHT,
   DEFAULT_FONT_FAMILY, FONT_FAMILY_WEIGHTS,
   COPY_FEEDBACK_MS, PERSIST_DELAY_MS,
-  SYNC_CHANNEL, THEME_COLORS, clampFontSize, parseStoredFontSize,
+  THEME_COLORS, clampFontSize, parseStoredFontSize,
   clampFontWeight, parseStoredFontWeight, parseStoredFontItalic,
   normalizeFontFamily, normalizeTheme, normalizeToolbarVisibility,
-  compareVersions, isVersionNewer, toVersion, createRecord
+  compareVersions, isVersionNewer, toVersion, createRecord,
+  getSlugFromPath, syncChannelName, sessionDraftKey
 } from './shared.js';
 
 (function () {
   'use strict';
+
+  // ---- URL routing ----
+
+  // Redirect trailing slashes (e.g. /my-doc/) to clean paths
+  var _pathname = window.location.pathname;
+  if (_pathname !== '/' && _pathname.endsWith('/')) {
+    window.location.replace(_pathname.slice(0, -1));
+    return;
+  }
+
+  var _slug = getSlugFromPath(_pathname);
+  if (!_slug) { window.location.replace('/'); return; }
+
+  /** @type {string} */
+  var currentSlug = _slug;
+  /** @type {string} */
+  var RECORD_ID = currentSlug;
 
   // ---- localStorage helpers ----
 
@@ -64,7 +82,16 @@ import {
    */
   function readSessionDraft() {
     try {
-      var raw = sessionStorage.getItem(SESSION_KEYS.textDraft);
+      var key = sessionDraftKey(currentSlug);
+      // One-time migration for root document: copy old unscoped key to new scoped key
+      if (currentSlug === 'current' && !sessionStorage.getItem(key)) {
+        var oldDraft = sessionStorage.getItem(SESSION_KEYS.textDraft);
+        if (oldDraft) {
+          sessionStorage.setItem(key, oldDraft);
+          sessionStorage.removeItem(SESSION_KEYS.textDraft);
+        }
+      }
+      var raw = sessionStorage.getItem(key);
       if (!raw) return null;
       var d = JSON.parse(raw);
       var v = d && d.version;
@@ -81,7 +108,7 @@ import {
    * @returns {void}
    */
   function writeSessionDraft(text, version) {
-    try { sessionStorage.setItem(SESSION_KEYS.textDraft, JSON.stringify({ text: text, version: version })); } catch (e) {}
+    try { sessionStorage.setItem(sessionDraftKey(currentSlug), JSON.stringify({ text: text, version: version })); } catch (e) {}
   }
 
   /**
@@ -89,7 +116,7 @@ import {
    * @returns {void}
    */
   function clearSessionDraft() {
-    try { sessionStorage.removeItem(SESSION_KEYS.textDraft); } catch (e) {}
+    try { sessionStorage.removeItem(sessionDraftKey(currentSlug)); } catch (e) {}
   }
 
   // ---- IndexedDB persistence ----
@@ -100,8 +127,6 @@ import {
   var DB_VERSION = 1;
   /** @type {string} */
   var STORE_NAME = 'documents';
-  /** @type {'current'} */
-  var RECORD_ID = 'current';
   /** @type {Promise<IDBDatabase> | null} */
   var dbPromise = null;
 
@@ -193,6 +218,44 @@ import {
           tx.onerror = function () { reject(tx.error || new Error('IndexedDB transaction failed.')); };
           tx.onabort = function () { reject(tx.error || new Error('IndexedDB transaction aborted.')); };
         });
+      });
+    });
+  }
+
+  /**
+   * Delete a document record from IndexedDB by id.
+   * @param {string} id
+   * @returns {Promise<void>}
+   */
+  function deleteRecord(id) {
+    return openDb().then(function (db) {
+      var tx = db.transaction(STORE_NAME, 'readwrite');
+      var store = tx.objectStore(STORE_NAME);
+      return wrapRequest(store.delete(id)).then(function () {
+        return new Promise(function (resolve, reject) {
+          tx.oncomplete = function () { resolve(); };
+          tx.onerror = function () { reject(tx.error || new Error('IndexedDB transaction failed.')); };
+          tx.onabort = function () { reject(tx.error || new Error('IndexedDB transaction aborted.')); };
+        });
+      });
+    });
+  }
+
+  /**
+   * Read all document records from IndexedDB.
+   * @returns {Promise<DocumentRecord[]>}
+   */
+  function listAllRecords() {
+    return openDb().then(function (db) {
+      var tx = db.transaction(STORE_NAME, 'readonly');
+      var store = tx.objectStore(STORE_NAME);
+      return wrapRequest(store.getAll());
+    }).then(function (records) {
+      if (!Array.isArray(records)) return [];
+      return records.filter(function (r) {
+        return r && typeof r === 'object' && typeof r.text === 'string' &&
+          typeof r.updatedAt === 'number' && typeof r.sourceTabId === 'string' &&
+          typeof r.saveSequence === 'number';
       });
     });
   }
@@ -375,6 +438,14 @@ import {
   var weightButtons = [btnWeightLight, btnWeightRegular, btnWeightBold];
   var btnItalic = /** @type {HTMLButtonElement} */ (document.getElementById('btn-italic'));
   var btnReset = /** @type {HTMLButtonElement} */ (document.getElementById('btn-reset'));
+  var btnDocuments = /** @type {HTMLButtonElement} */ (document.getElementById('btn-documents'));
+  var dialogDocuments = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-documents'));
+  var documentsList = /** @type {HTMLUListElement} */ (document.getElementById('documents-list'));
+  var documentsEmpty = /** @type {HTMLParagraphElement} */ (document.getElementById('documents-empty'));
+  var btnSortAlpha = /** @type {HTMLButtonElement} */ (document.getElementById('btn-sort-alpha'));
+  var btnSortRecent = /** @type {HTMLButtonElement} */ (document.getElementById('btn-sort-recent'));
+  var documentsCreateForm = /** @type {HTMLFormElement} */ (document.getElementById('documents-create'));
+  var documentsCreateInput = /** @type {HTMLInputElement} */ (document.getElementById('documents-create-input'));
 
   // ---- State ----
 
@@ -416,6 +487,8 @@ import {
   var broadcastChannel = null;
   /** @type {boolean} */
   var enableMotion = false;
+  /** @type {'alpha' | 'recent'} */
+  var docSortMode = 'alpha';
 
   // ---- Apply initial state ----
 
@@ -641,7 +714,22 @@ import {
     if (!hasPendingEdits) return Promise.resolve();
 
     var nextVersion = pendingVersion || createNextVersion();
-    var nextRecord = createRecord(nextText, nextVersion);
+
+    // Auto-delete empty documents
+    if (!nextText) {
+      persistChain = persistChain.catch(function () {}).then(function () {
+        return deleteRecord(RECORD_ID).then(function () {
+          persistedVersion = nextVersion;
+          pendingVersion = null;
+          hasPendingEdits = false;
+          clearSessionDraft();
+          broadcastUpdate(nextVersion);
+        });
+      });
+      return persistChain.catch(function () {});
+    }
+
+    var nextRecord = createRecord(nextText, nextVersion, RECORD_ID);
 
     persistChain = persistChain.catch(function () {}).then(function () {
       return writeRecord(nextRecord).then(function (written) {
@@ -931,6 +1019,52 @@ import {
     applyToolbarVisibility(true);
   }
 
+  // ---- Documents dialog ----
+
+  /**
+   * Render the documents list from IndexedDB records.
+   * Filters out empty records and the root document (id === 'current').
+   * @param {DocumentRecord[]} records
+   * @returns {void}
+   */
+  function renderDocumentsList(records) {
+    var nonEmpty = records.filter(function (r) { return r.text && r.id !== 'current'; });
+
+    if (docSortMode === 'recent') {
+      nonEmpty.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+    } else {
+      nonEmpty.sort(function (a, b) { return a.id.localeCompare(b.id); });
+    }
+
+    documentsList.innerHTML = '';
+
+    if (nonEmpty.length === 0) {
+      documentsEmpty.style.display = '';
+      return;
+    }
+    documentsEmpty.style.display = 'none';
+
+    for (var i = 0; i < nonEmpty.length; i++) {
+      var r = nonEmpty[i];
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = '/' + r.id;
+      a.textContent = '/' + r.id;
+      if (r.id === currentSlug) a.classList.add('active');
+      li.appendChild(a);
+      documentsList.appendChild(li);
+    }
+  }
+
+  /**
+   * Open the documents dialog and populate the list.
+   * @returns {void}
+   */
+  function openDocumentsDialog() {
+    openDialog(dialogDocuments);
+    listAllRecords().then(renderDocumentsList).catch(function () {});
+  }
+
   // ---- Initialize ----
 
   /**
@@ -949,10 +1083,41 @@ import {
     // Setup dialogs
     setupDialog(dialogInfo);
     setupDialog(dialogSettings);
+    setupDialog(dialogDocuments);
 
     // Button events
     btnInfo.addEventListener('click', function () { openDialog(dialogInfo); });
     btnSettings.addEventListener('click', function () { openDialog(dialogSettings); });
+    btnDocuments.addEventListener('click', openDocumentsDialog);
+
+    btnSortAlpha.addEventListener('click', function () {
+      docSortMode = 'alpha';
+      btnSortAlpha.setAttribute('aria-checked', 'true');
+      btnSortRecent.setAttribute('aria-checked', 'false');
+      listAllRecords().then(renderDocumentsList).catch(function () {});
+    });
+    btnSortRecent.addEventListener('click', function () {
+      docSortMode = 'recent';
+      btnSortAlpha.setAttribute('aria-checked', 'false');
+      btnSortRecent.setAttribute('aria-checked', 'true');
+      listAllRecords().then(renderDocumentsList).catch(function () {});
+    });
+
+    documentsCreateInput.addEventListener('input', function () {
+      documentsCreateInput.value = documentsCreateInput.value.toLowerCase().replace(/\s+/g, '-');
+    });
+
+    documentsCreateForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var raw = documentsCreateInput.value.trim();
+      if (!raw) return;
+      var slug = getSlugFromPath('/' + raw);
+      if (!slug || slug === 'current') {
+        documentsCreateInput.value = '';
+        return;
+      }
+      window.location.href = '/' + slug;
+    });
 
     /**
      * Adjust the font size by a delta and persist the new value.
@@ -1029,7 +1194,7 @@ import {
       applyFontItalic();
     });
 
-    btnSave.addEventListener('click', function () { downloadFile(text); });
+    btnSave.addEventListener('click', function () { downloadFile(text, currentSlug === 'current' ? 'plaintext.txt' : currentSlug + '.txt'); });
 
     // Upload button: trigger hidden file input
     btnUpload.addEventListener('click', function () {
@@ -1108,7 +1273,7 @@ import {
 
     // BroadcastChannel
     if (typeof BroadcastChannel !== 'undefined') {
-      broadcastChannel = new BroadcastChannel(SYNC_CHANNEL);
+      broadcastChannel = new BroadcastChannel(syncChannelName(currentSlug));
       broadcastChannel.onmessage = handleBroadcast;
     }
 

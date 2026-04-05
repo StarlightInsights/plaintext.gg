@@ -30,6 +30,19 @@ function isFontRequest(url) {
   return new URL(url).pathname.endsWith('.woff2');
 }
 
+/**
+ * Check if a request is a navigation/slug request (not a static asset).
+ * Returns true for paths without file extensions that are not under /fonts/.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isNavigationRequest(url) {
+  var pathname = new URL(url).pathname;
+  if (pathname.indexOf('.') !== -1) return false;
+  if (pathname.startsWith('/fonts/')) return false;
+  return true;
+}
+
 sw.addEventListener('install', /** @param {ExtendableEvent} event */ (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
@@ -66,7 +79,27 @@ sw.addEventListener('fetch', /** @param {FetchEvent} event */ (event) => {
     return;
   }
 
-  // Network-first for app code (HTML, JS, CSS, icons, manifest).
+  // Navigation/slug requests: serve index.html (cached under '/').
+  // All document slugs share the same HTML shell — the JS reads the URL to load the right doc.
+  if (isNavigationRequest(event.request.url)) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' }).then((response) => {
+        if (response.ok) {
+          var clone = response.clone();
+          // Cache under the canonical '/' key so all slugs share the same cached HTML
+          caches.open(CACHE_NAME).then((cache) => cache.put(new Request('/'), clone));
+        }
+        return response;
+      }).catch(() =>
+        caches.match('/').then((cached) =>
+          cached || new Response('Offline', { status: 503, statusText: 'Service Unavailable' })
+        )
+      )
+    );
+    return;
+  }
+
+  // Network-first for app code (JS, CSS, icons, manifest).
   // Always fetch fresh content when online; fall back to cache when offline.
   // { cache: 'no-cache' } ensures the browser revalidates with the server
   // rather than serving a stale response from the HTTP cache.

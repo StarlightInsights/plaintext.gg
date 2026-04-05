@@ -103,7 +103,7 @@ test.describe('Text editing', () => {
     await page.waitForTimeout(50);
     // Verify sessionStorage has the draft
     const hasDraft = await page.evaluate(() => {
-      return sessionStorage.getItem('plaintext:textDraft') !== null;
+      return sessionStorage.getItem('plaintext:textDraft:current') !== null;
     });
     expect(hasDraft).toBe(true);
   });
@@ -477,8 +477,8 @@ test.describe('Dialog layout', () => {
     await page.locator('#dialog-settings').evaluate(el => el.showModal());
     await page.waitForTimeout(300);
 
-    const groupWidth = await page.locator('.setting-control--group:first-child').evaluate(el => el.offsetWidth);
-    const parentWidth = await page.locator('.setting-control--group:first-child').evaluate(el => el.parentElement.offsetWidth);
+    const groupWidth = await page.locator('#dialog-settings .setting-control--group:first-child').evaluate(el => el.offsetWidth);
+    const parentWidth = await page.locator('#dialog-settings .setting-control--group:first-child').evaluate(el => el.parentElement.offsetWidth);
     // The font selector group should fill its parent
     expect(groupWidth).toBe(parentWidth);
   });
