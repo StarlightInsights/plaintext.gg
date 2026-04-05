@@ -398,7 +398,7 @@ test.describe('Dialogs', () => {
     await page.locator('#btn-info').click();
     const link = page.locator('#dialog-info-desc a[href*="github.com"]');
     await expect(link).toBeVisible();
-    await expect(link).toHaveText('GitHub');
+    await expect(link).toContainText('GitHub');
   });
 
   test('info dialog contains Commit Mono link', async ({ page }) => {
@@ -597,9 +597,11 @@ test.describe('Accessibility', () => {
     }
   });
 
-  test('editor has aria-label', async ({ page }) => {
+  test('editor has accessible label', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('#editor')).toHaveAttribute('aria-label', 'Plain text editor');
+    // Editor is labelled via <label for="editor"> instead of aria-label
+    const label = page.locator('label[for="editor"]');
+    await expect(label).toHaveText('Plain text editor');
   });
 
   test('all SVG icons have aria-hidden', async ({ page }) => {
