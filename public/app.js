@@ -1023,17 +1023,22 @@ import {
 
   /**
    * Render the documents list from IndexedDB records.
-   * Filters out empty records and the root document (id === 'current').
+   * Filters out empty records.
    * @param {DocumentRecord[]} records
    * @returns {void}
    */
   function renderDocumentsList(records) {
-    var nonEmpty = records.filter(function (r) { return r.text && r.id !== 'current'; });
+    var nonEmpty = records.filter(function (r) { return r.text; });
 
     if (docSortMode === 'recent') {
       nonEmpty.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
     } else {
-      nonEmpty.sort(function (a, b) { return a.id.localeCompare(b.id); });
+      nonEmpty.sort(function (a, b) {
+        // Root document (id === 'current') sorts first as '/'
+        if (a.id === 'current') return -1;
+        if (b.id === 'current') return 1;
+        return a.id.localeCompare(b.id);
+      });
     }
 
     documentsList.innerHTML = '';
@@ -1048,8 +1053,8 @@ import {
       var r = nonEmpty[i];
       var li = document.createElement('li');
       var a = document.createElement('a');
-      a.href = '/' + r.id;
-      a.textContent = '/' + r.id;
+      a.href = r.id === 'current' ? '/' : '/' + r.id;
+      a.textContent = r.id === 'current' ? '/' : '/' + r.id;
       if (r.id === currentSlug) a.classList.add('active');
       li.appendChild(a);
       documentsList.appendChild(li);
