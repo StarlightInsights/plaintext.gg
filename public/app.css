@@ -251,6 +251,41 @@ textarea {
   font: inherit;
 }
 
+/* ---- Screen reader only ---- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Skip navigation ---- */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 100;
+  padding: 8px 16px;
+  background-color: var(--text-primary);
+  color: var(--bg);
+  font-family: var(--font-header);
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: 0 0 4px 4px;
+  transition: top var(--duration) ease-out;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 /* ---- App shell ---- */
 
 .app-shell {
@@ -369,7 +404,9 @@ textarea {
 
 .btn:focus-visible {
   color: var(--text-primary);
-  outline: none;
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .btn:disabled {
@@ -395,6 +432,9 @@ textarea {
 
 .btn-float:focus-visible {
   opacity: 1;
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .icon {
@@ -579,7 +619,9 @@ main.dragover::after {
 }
 
 .dialog-close:focus-visible {
-  outline: none;
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .dialog-body {
@@ -608,7 +650,12 @@ main.dragover::after {
 .dialog-body a:hover,
 .dialog-body a:focus-visible {
   color: var(--text-primary);
-  outline: none;
+}
+
+.dialog-body a:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 1px;
+  border-radius: 2px;
 }
 
 /* ---- Settings ---- */
@@ -680,7 +727,8 @@ main.dragover::after {
 }
 
 .setting-toggle:focus-visible {
-  outline: none;
+  outline: 2px solid var(--text-muted);
+  outline-offset: -1px;
 }
 
 .setting-toggle[aria-checked="true"] {
@@ -729,6 +777,8 @@ main.dragover::after {
 
 .documents-create-input:focus {
   border-color: var(--text-muted);
+  outline: 2px solid var(--text-muted);
+  outline-offset: -1px;
 }
 
 .documents-create-input:focus + .documents-create-btn {
@@ -773,7 +823,12 @@ main.dragover::after {
 .documents-list a:hover,
 .documents-list a:focus-visible {
   color: var(--text-primary);
-  outline: none;
+}
+
+.documents-list a:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 1px;
+  border-radius: 2px;
 }
 
 .documents-list a.active {

@@ -446,6 +446,7 @@ import {
   var btnSortRecent = /** @type {HTMLButtonElement} */ (document.getElementById('btn-sort-recent'));
   var documentsCreateForm = /** @type {HTMLFormElement} */ (document.getElementById('documents-create'));
   var documentsCreateInput = /** @type {HTMLInputElement} */ (document.getElementById('documents-create-input'));
+  var a11yAnnounce = /** @type {HTMLDivElement} */ (document.getElementById('a11y-announce'));
 
   // ---- State ----
 
@@ -489,6 +490,19 @@ import {
   var enableMotion = false;
   /** @type {'alpha' | 'recent'} */
   var docSortMode = 'alpha';
+
+  // ---- Screen reader announcements ----
+
+  /**
+   * Announce a message to screen readers via the aria-live region.
+   * Clears after a short delay so repeated identical messages are re-announced.
+   * @param {string} message
+   * @returns {void}
+   */
+  function announce(message) {
+    a11yAnnounce.textContent = '';
+    requestAnimationFrame(function () { a11yAnnounce.textContent = message; });
+  }
 
   // ---- Apply initial state ----
 
@@ -865,6 +879,7 @@ import {
     clearCopyFeedback();
     btnCopy.classList.add(success ? 'copy-success' : 'copy-error');
     btnCopy.setAttribute('aria-label', success ? 'Copied' : 'Copy failed');
+    announce(success ? 'Text copied to clipboard' : 'Copy failed');
     iconCopy.style.display = 'none';
     iconCopyFeedback.style.display = '';
     copyFeedbackTimeout = setTimeout(function () {
@@ -982,17 +997,24 @@ import {
 
   // ---- Dialog handling ----
 
+  /** @type {HTMLElement | null} */
+  var dialogTriggerEl = null;
+
   /**
-   * Open a dialog as a modal.
+   * Open a dialog as a modal, tracking the trigger element for focus restoration.
    * @param {HTMLDialogElement} dialog
    * @returns {void}
    */
   function openDialog(dialog) {
+    dialogTriggerEl = /** @type {HTMLElement | null} */ (document.activeElement);
     dialog.showModal();
+    // Focus the close button inside the dialog for immediate keyboard access
+    var closeBtn = dialog.querySelector('.dialog-close');
+    if (closeBtn instanceof HTMLElement) closeBtn.focus();
   }
 
   /**
-   * Set up a dialog with backdrop-click-to-close and close button behavior.
+   * Set up a dialog with backdrop-click-to-close, close button, and focus restoration.
    * @param {HTMLDialogElement} dialog
    * @returns {void}
    */
@@ -1005,6 +1027,16 @@ import {
     if (closeBtn) {
       closeBtn.addEventListener('click', function () { dialog.close(); });
     }
+
+    // Restore focus to the trigger element when dialog closes
+    dialog.addEventListener('close', function () {
+      if (dialogTriggerEl && dialogTriggerEl.focus) {
+        dialogTriggerEl.focus();
+        dialogTriggerEl = null;
+      } else {
+        editorEl.focus();
+      }
+    });
   }
 
   // ---- Toolbar toggle ----
@@ -1199,7 +1231,11 @@ import {
       applyFontItalic();
     });
 
-    btnSave.addEventListener('click', function () { downloadFile(text, currentSlug === 'current' ? 'plaintext.txt' : currentSlug + '.txt'); });
+    btnSave.addEventListener('click', function () {
+      var filename = currentSlug === 'current' ? 'plaintext.txt' : currentSlug + '.txt';
+      downloadFile(text, filename);
+      announce('File saved as ' + filename);
+    });
 
     // Upload button: trigger hidden file input
     btnUpload.addEventListener('click', function () {
@@ -1256,11 +1292,23 @@ import {
       theme = theme === 'dark' ? 'light' : 'dark';
       saveStored(STORAGE_KEYS.theme, theme);
       applyTheme();
+      announce('Theme switched to ' + theme);
     });
 
     btnHideMobile.addEventListener('click', toggleToolbar);
     btnToggleDesktop.addEventListener('click', toggleToolbar);
     btnToggleMobile.addEventListener('click', toggleToolbar);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function (e) {
+      var mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === 's') {
+        e.preventDefault();
+        var filename = currentSlug === 'current' ? 'plaintext.txt' : currentSlug + '.txt';
+        downloadFile(text, filename);
+        announce('File saved as ' + filename);
+      }
+    });
 
     // Textarea events
     editorEl.addEventListener('input', handleInput);
