@@ -8,85 +8,56 @@ Sometimes you just want plain text.
 
 - Writes and edits plain text in a single full-page textarea
 - Saves automatically to the browser with a short debounce
-- Lets you copy text, download it as `plaintext.txt`, and adjust font size
+- Recovers unsaved text after a crash via `sessionStorage`
+- Supports multiple documents through URL slugs (e.g. `plaintext.gg/notes`)
+- Lets you copy text, download it as a file, or upload/drag-and-drop text files
+- Offers four self-hosted font families: Commit Mono, Roboto, EB Garamond, and OpenDyslexic
+- Adjustable font size, weight, and italic
 - Supports light and dark themes
+- Toolbar toggle for a distraction-free writing mode
 - Syncs text across open tabs with `BroadcastChannel`
-- Syncs theme and font size across open windows through the browser `storage` event
-- Uses self-hosted Commit Mono webfonts
+- Syncs preferences across open windows through the browser `storage` event
 - Works offline as an installable PWA
-
-## Project Structure
-
-```
-public/                 # Deployable static site (no build step)
-  index.html            # Single-page app shell with inline SVGs
-  app.css               # Hand-written CSS with design tokens and themes
-  app.js                # All application logic (persistence, sync, UI)
-  sw.js                 # Service worker for offline support
-  manifest.webmanifest  # PWA manifest
-  fonts/                # Commit Mono (3 weights, Regular only)
-  icon.svg, *.png       # App icons and favicon
-tests/
-  editor.test.js        # Unit tests for pure utility functions
-  app.spec.js           # Playwright e2e tests (75 tests)
-scripts/
-  deploy-bunny-storage.mjs  # Zero-dependency Bunny CDN deploy script
-.github/workflows/
-  ci.yml                # CI pipeline and deploy on main
-```
 
 ## Local Development
 
-No framework, no bundler, no build step. Just serve the `public/` directory:
+No framework, no bundler, no build step. The project uses `pnpm` as its package manager:
 
 ```sh
 git clone https://github.com/StarlightInsights/Plaintext.gg.git
 cd Plaintext.gg
-node -e "
-  const h=require('http'),f=require('fs'),p=require('path');
-  const m={html:'text/html',css:'text/css',js:'text/javascript',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',ico:'image/x-icon',woff2:'font/woff2',txt:'text/plain'};
-  h.createServer((q,r)=>{let u=q.url.split('?')[0];if(u==='/')u='/index.html';f.readFile(p.join('public',u),(e,d)=>{if(e){r.writeHead(404);r.end();return}r.writeHead(200,{'Content-Type':m[p.extname(u).slice(1)]||'application/octet-stream'});r.end(d)})}).listen(3000,()=>console.log('http://localhost:3000'));
-"
+pnpm install
+pnpm run dev
 ```
 
-Or use any static file server: `npx serve public`, `python3 -m http.server -d public`, etc.
+This starts a dev server at `http://localhost:3000`. Or serve the `public/` directory with any static file server.
 
 ## Tests
 
 ```sh
 # Unit tests (no dependencies needed)
-npm test
+pnpm test
 
 # E2E tests (one-time setup, then run)
-npm install && npx playwright install chromium
-npm run test:e2e
+pnpm exec playwright install chromium
+pnpm run test:e2e
 
-# Both
-npm run test:all
+# Type checking
+pnpm run typecheck
+
+# Everything (typecheck + unit + e2e)
+pnpm run check
 ```
 
 ## Deployment
 
 The `public/` directory is the entire site. No build step. Deploy it to any static host.
 
-On pushes to `main`, GitHub Actions:
-
-1. Runs the unit test suite
-2. Uploads the contents of `public/` to Bunny Storage
-3. Removes stale files from the configured storage path
-4. Purges the Bunny Pull Zone cache
-
-Required GitHub Actions secrets:
-
-- `BUNNY_API_KEY`: your Bunny account API key for cache purges
-- `BUNNY_PULL_ZONE_ID`: the numeric Pull Zone ID for the CDN zone
-- `BUNNY_STORAGE_ENDPOINT`: the storage hostname (e.g. `storage.bunnycdn.com`)
-- `BUNNY_STORAGE_ZONE`: your Bunny Storage zone name
-- `BUNNY_STORAGE_PASSWORD`: your storage zone password
+On pushes to `main`, GitHub Actions runs type checking, unit tests, and e2e tests, then deploys to the CDN.
 
 ## Privacy
 
-`plaintext.gg` stores text in the browser's IndexedDB and keeps theme and font size in `localStorage`.
+`plaintext.gg` stores text in the browser's IndexedDB and keeps preferences (theme, font family, font size, font weight, italic, and toolbar visibility) in `localStorage`.
 
 - No accounts
 - No analytics
