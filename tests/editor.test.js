@@ -290,6 +290,23 @@ test('getSlugFromPath rejects special characters', () => {
   assert.equal(getSlugFromPath('/my@doc'), null);
 });
 
+test('getSlugFromPath strips trailing slashes', () => {
+  assert.equal(getSlugFromPath('/my-doc/'), 'my-doc');
+  assert.equal(getSlugFromPath('/my-doc///'), 'my-doc');
+});
+
+test('getSlugFromPath accepts consecutive hyphens', () => {
+  assert.equal(getSlugFromPath('/my--doc'), 'my--doc');
+});
+
+test('getSlugFromPath returns current for bare trailing slashes', () => {
+  assert.equal(getSlugFromPath('///'), 'current');
+});
+
+test('getSlugFromPath rejects single hyphen', () => {
+  assert.equal(getSlugFromPath('/-'), null);
+});
+
 // ---- syncChannelName ----
 
 test('syncChannelName returns scoped channel name', () => {

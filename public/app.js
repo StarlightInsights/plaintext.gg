@@ -84,9 +84,12 @@ import {
     try {
       var key = sessionDraftKey(currentSlug);
       // One-time migration for root document: copy old unscoped key to new scoped key
-      if (currentSlug === 'current' && !sessionStorage.getItem(key) && sessionStorage.getItem(SESSION_KEYS.textDraft)) {
-        sessionStorage.setItem(key, /** @type {string} */ (sessionStorage.getItem(SESSION_KEYS.textDraft)));
-        sessionStorage.removeItem(SESSION_KEYS.textDraft);
+      if (currentSlug === 'current' && !sessionStorage.getItem(key)) {
+        var oldDraft = sessionStorage.getItem(SESSION_KEYS.textDraft);
+        if (oldDraft) {
+          sessionStorage.setItem(key, oldDraft);
+          sessionStorage.removeItem(SESSION_KEYS.textDraft);
+        }
       }
       var raw = sessionStorage.getItem(key);
       if (!raw) return null;
@@ -1106,7 +1109,7 @@ import {
 
     documentsCreateForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      var raw = documentsCreateInput.value.trim().toLowerCase();
+      var raw = documentsCreateInput.value.trim();
       if (!raw) return;
       var slug = getSlugFromPath('/' + raw);
       if (!slug || slug === 'current') {
