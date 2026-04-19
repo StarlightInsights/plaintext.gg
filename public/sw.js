@@ -9,6 +9,7 @@ const PRECACHE_URLS = [
   '/app.css',
   '/app.js',
   '/shared.js',
+  '/theme-init.js',
   '/manifest.webmanifest',
   '/icon.svg',
   '/icon-192.png',
@@ -44,8 +45,18 @@ function isNavigationRequest(url) {
 }
 
 sw.addEventListener('install', /** @param {ExtendableEvent} event */ (event) => {
+  // Per-URL add so one broken asset (e.g. a renamed font) doesn't throw out the
+  // whole precache and leave the app with no offline support.
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        PRECACHE_URLS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('[sw] precache failed for', url, err);
+          })
+        )
+      )
+    )
   );
   sw.skipWaiting();
 });
