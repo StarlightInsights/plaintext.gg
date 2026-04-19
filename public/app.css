@@ -640,7 +640,7 @@ main.dragover::after {
 
 .dialog-body strong {
   font-family: var(--font-main);
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .dialog-body a,
