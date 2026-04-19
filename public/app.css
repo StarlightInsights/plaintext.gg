@@ -191,6 +191,8 @@
   --font-header: "CommitMono-250", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-dialog: "CommitMono-200", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --icon-size: 1.25rem;
+  --btn-size: 2rem;
+  --radius-sm: 2px;
   --leading: 1.65;
   --duration: 160ms;
   --duration-slow: 180ms;
@@ -406,7 +408,7 @@ textarea {
   color: var(--text-primary);
   outline: 2px solid var(--text-muted);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .btn:disabled {
@@ -415,8 +417,8 @@ textarea {
 }
 
 .btn-icon {
-  width: 32px;
-  height: 32px;
+  width: var(--btn-size);
+  height: var(--btn-size);
   padding: 4px;
 }
 
@@ -434,7 +436,7 @@ textarea {
   opacity: 1;
   outline: 2px solid var(--text-muted);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .icon {
@@ -621,7 +623,7 @@ main.dragover::after {
 .dialog-close:focus-visible {
   outline: 2px solid var(--text-muted);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .dialog-body {
@@ -638,7 +640,7 @@ main.dragover::after {
 
 .dialog-body strong {
   font-family: var(--font-main);
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .dialog-body a,
@@ -655,7 +657,7 @@ main.dragover::after {
 .dialog-body a:focus-visible {
   outline: 2px solid var(--text-muted);
   outline-offset: 1px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* ---- Settings ---- */
@@ -828,7 +830,7 @@ main.dragover::after {
 .documents-list a:focus-visible {
   outline: 2px solid var(--text-muted);
   outline-offset: 1px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .documents-list a.active {

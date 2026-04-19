@@ -399,54 +399,66 @@ import {
   }
 
   // ---- DOM refs ----
-  // These elements are guaranteed to exist in the HTML — no null checks needed.
 
-  var appShell = /** @type {HTMLDivElement} */ (document.getElementById('app-shell'));
-  var toolbar = /** @type {HTMLElement} */ (document.getElementById('toolbar'));
-  var editorEl = /** @type {HTMLTextAreaElement} */ (document.getElementById('editor'));
-  var btnInfo = /** @type {HTMLButtonElement} */ (document.getElementById('btn-info'));
-  var btnFontUp = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-up'));
-  var btnFontDown = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-down'));
-  var btnSave = /** @type {HTMLButtonElement} */ (document.getElementById('btn-save'));
-  var btnCopy = /** @type {HTMLButtonElement} */ (document.getElementById('btn-copy'));
-  var btnTheme = /** @type {HTMLButtonElement} */ (document.getElementById('btn-theme'));
-  var btnHideMobile = /** @type {HTMLButtonElement} */ (document.getElementById('btn-hide-mobile'));
-  var btnToggleDesktop = /** @type {HTMLButtonElement} */ (document.getElementById('btn-toggle-desktop'));
-  var btnToggleMobile = /** @type {HTMLButtonElement} */ (document.getElementById('btn-toggle-mobile'));
-  var toggleDesktop = /** @type {HTMLDivElement} */ (document.getElementById('toggle-desktop'));
-  var toggleMobile = /** @type {HTMLDivElement} */ (document.getElementById('toggle-mobile'));
-  var dialogInfo = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-info'));
-  var btnUpload = /** @type {HTMLButtonElement} */ (document.getElementById('btn-upload'));
-  var fileUpload = /** @type {HTMLInputElement} */ (document.getElementById('file-upload'));
-  var iconCopy = /** @type {HTMLElement} */ (document.getElementById('icon-copy'));
-  var iconCopyFeedback = /** @type {HTMLElement} */ (document.getElementById('icon-copy-feedback'));
-  var iconThemeLight = /** @type {HTMLElement} */ (document.getElementById('icon-theme-light'));
-  var iconThemeDark = /** @type {HTMLElement} */ (document.getElementById('icon-theme-dark'));
-  var iconEyeOpen = /** @type {HTMLElement} */ (document.getElementById('icon-eye-open'));
-  var iconEyeClosed = /** @type {HTMLElement} */ (document.getElementById('icon-eye-closed'));
-  var btnSettings = /** @type {HTMLButtonElement} */ (document.getElementById('btn-settings'));
-  var dialogSettings = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-settings'));
-  var fontSizeValue = /** @type {HTMLElement} */ (document.getElementById('font-size-value'));
-  var btnFontMono = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-mono'));
-  var btnFontSans = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-sans'));
-  var btnFontSerif = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-serif'));
-  var btnFontDyslexic = /** @type {HTMLButtonElement} */ (document.getElementById('btn-font-dyslexic'));
+  /**
+   * Look up a required element by ID. Throws with a useful message if the
+   * HTML is missing the node — avoids downstream null-dereferences that
+   * would otherwise crash silently inside unrelated handlers.
+   * @param {string} id
+   * @returns {HTMLElement}
+   */
+  function mustGet(id) {
+    var el = document.getElementById(id);
+    if (!el) throw new Error('Required element #' + id + ' missing from DOM');
+    return el;
+  }
+
+  var appShell = /** @type {HTMLDivElement} */ (mustGet('app-shell'));
+  var toolbar = /** @type {HTMLElement} */ (mustGet('toolbar'));
+  var editorEl = /** @type {HTMLTextAreaElement} */ (mustGet('editor'));
+  var btnInfo = /** @type {HTMLButtonElement} */ (mustGet('btn-info'));
+  var btnFontUp = /** @type {HTMLButtonElement} */ (mustGet('btn-font-up'));
+  var btnFontDown = /** @type {HTMLButtonElement} */ (mustGet('btn-font-down'));
+  var btnSave = /** @type {HTMLButtonElement} */ (mustGet('btn-save'));
+  var btnCopy = /** @type {HTMLButtonElement} */ (mustGet('btn-copy'));
+  var btnTheme = /** @type {HTMLButtonElement} */ (mustGet('btn-theme'));
+  var btnHideMobile = /** @type {HTMLButtonElement} */ (mustGet('btn-hide-mobile'));
+  var btnToggleDesktop = /** @type {HTMLButtonElement} */ (mustGet('btn-toggle-desktop'));
+  var btnToggleMobile = /** @type {HTMLButtonElement} */ (mustGet('btn-toggle-mobile'));
+  var toggleDesktop = /** @type {HTMLDivElement} */ (mustGet('toggle-desktop'));
+  var toggleMobile = /** @type {HTMLDivElement} */ (mustGet('toggle-mobile'));
+  var dialogInfo = /** @type {HTMLDialogElement} */ (mustGet('dialog-info'));
+  var btnUpload = /** @type {HTMLButtonElement} */ (mustGet('btn-upload'));
+  var fileUpload = /** @type {HTMLInputElement} */ (mustGet('file-upload'));
+  var iconCopy = mustGet('icon-copy');
+  var iconCopyFeedback = mustGet('icon-copy-feedback');
+  var iconThemeLight = mustGet('icon-theme-light');
+  var iconThemeDark = mustGet('icon-theme-dark');
+  var iconEyeOpen = mustGet('icon-eye-open');
+  var iconEyeClosed = mustGet('icon-eye-closed');
+  var btnSettings = /** @type {HTMLButtonElement} */ (mustGet('btn-settings'));
+  var dialogSettings = /** @type {HTMLDialogElement} */ (mustGet('dialog-settings'));
+  var fontSizeValue = mustGet('font-size-value');
+  var btnFontMono = /** @type {HTMLButtonElement} */ (mustGet('btn-font-mono'));
+  var btnFontSans = /** @type {HTMLButtonElement} */ (mustGet('btn-font-sans'));
+  var btnFontSerif = /** @type {HTMLButtonElement} */ (mustGet('btn-font-serif'));
+  var btnFontDyslexic = /** @type {HTMLButtonElement} */ (mustGet('btn-font-dyslexic'));
   var fontButtons = [btnFontMono, btnFontSans, btnFontSerif, btnFontDyslexic];
-  var btnWeightLight = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-light'));
-  var btnWeightRegular = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-regular'));
-  var btnWeightBold = /** @type {HTMLButtonElement} */ (document.getElementById('btn-weight-bold'));
+  var btnWeightLight = /** @type {HTMLButtonElement} */ (mustGet('btn-weight-light'));
+  var btnWeightRegular = /** @type {HTMLButtonElement} */ (mustGet('btn-weight-regular'));
+  var btnWeightBold = /** @type {HTMLButtonElement} */ (mustGet('btn-weight-bold'));
   var weightButtons = [btnWeightLight, btnWeightRegular, btnWeightBold];
-  var btnItalic = /** @type {HTMLButtonElement} */ (document.getElementById('btn-italic'));
-  var btnReset = /** @type {HTMLButtonElement} */ (document.getElementById('btn-reset'));
-  var btnDocuments = /** @type {HTMLButtonElement} */ (document.getElementById('btn-documents'));
-  var dialogDocuments = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-documents'));
-  var documentsList = /** @type {HTMLUListElement} */ (document.getElementById('documents-list'));
-  var documentsEmpty = /** @type {HTMLParagraphElement} */ (document.getElementById('documents-empty'));
-  var btnSortAlpha = /** @type {HTMLButtonElement} */ (document.getElementById('btn-sort-alpha'));
-  var btnSortRecent = /** @type {HTMLButtonElement} */ (document.getElementById('btn-sort-recent'));
-  var documentsCreateForm = /** @type {HTMLFormElement} */ (document.getElementById('documents-create'));
-  var documentsCreateInput = /** @type {HTMLInputElement} */ (document.getElementById('documents-create-input'));
-  var a11yAnnounce = /** @type {HTMLDivElement} */ (document.getElementById('a11y-announce'));
+  var btnItalic = /** @type {HTMLButtonElement} */ (mustGet('btn-italic'));
+  var btnReset = /** @type {HTMLButtonElement} */ (mustGet('btn-reset'));
+  var btnDocuments = /** @type {HTMLButtonElement} */ (mustGet('btn-documents'));
+  var dialogDocuments = /** @type {HTMLDialogElement} */ (mustGet('dialog-documents'));
+  var documentsList = /** @type {HTMLUListElement} */ (mustGet('documents-list'));
+  var documentsEmpty = /** @type {HTMLParagraphElement} */ (mustGet('documents-empty'));
+  var btnSortAlpha = /** @type {HTMLButtonElement} */ (mustGet('btn-sort-alpha'));
+  var btnSortRecent = /** @type {HTMLButtonElement} */ (mustGet('btn-sort-recent'));
+  var documentsCreateForm = /** @type {HTMLFormElement} */ (mustGet('documents-create'));
+  var documentsCreateInput = /** @type {HTMLInputElement} */ (mustGet('documents-create-input'));
+  var a11yAnnounce = /** @type {HTMLDivElement} */ (mustGet('a11y-announce'));
 
   // ---- State ----
 
@@ -535,14 +547,22 @@ import {
   }
 
   /**
+   * Map the abstract weight (200/300/600) to the actual CSS weight for the
+   * current font family.
+   * @returns {string}
+   */
+  function computeEditorFontWeight() {
+    var weightMap = FONT_WEIGHT_MAP[fontFamily] || FONT_WEIGHT_MAP['mono'];
+    var slot = fontWeight === 200 ? 0 : fontWeight === 600 ? 2 : 1;
+    return String(weightMap[slot]);
+  }
+
+  /**
    * Apply the current font weight to the editor and update the settings UI.
    * @returns {void}
    */
   function applyFontWeight() {
-    // Map abstract weight to actual CSS weight for this font
-    var weightMap = FONT_WEIGHT_MAP[fontFamily] || FONT_WEIGHT_MAP['mono'];
-    var slot = fontWeight === 200 ? 0 : fontWeight === 600 ? 2 : 1;
-    editorEl.style.fontWeight = String(weightMap[slot]);
+    editorEl.style.fontWeight = computeEditorFontWeight();
     for (var i = 0; i < weightButtons.length; i++) {
       var active = Number(weightButtons[i].getAttribute('data-weight')) === fontWeight;
       weightButtons[i].setAttribute('aria-checked', active ? 'true' : 'false');
@@ -608,10 +628,7 @@ import {
       weightButtons[j].disabled = !isSupported;
     }
 
-    // Map abstract weight to actual CSS weight for this font
-    var weightMap = FONT_WEIGHT_MAP[fontFamily] || FONT_WEIGHT_MAP['mono'];
-    var slot = fontWeight === 200 ? 0 : fontWeight === 600 ? 2 : 1;
-    editorEl.style.fontWeight = String(weightMap[slot]);
+    editorEl.style.fontWeight = computeEditorFontWeight();
   }
 
   /**
@@ -1330,12 +1347,15 @@ import {
       broadcastChannel.onmessage = handleBroadcast;
     }
 
-    // Toolbar resize tracking
+    // Toolbar resize tracking. ResizeObserver fires whenever the toolbar's
+    // box changes, which already covers window resizes, so a separate
+    // window resize listener would just double-fire applyEditorPadding.
     if (typeof ResizeObserver !== 'undefined') {
       var observer = new ResizeObserver(function () {
         applyEditorPadding();
       });
       observer.observe(toolbar);
+    } else {
       window.addEventListener('resize', applyEditorPadding);
     }
 

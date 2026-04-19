@@ -2,7 +2,7 @@
 
 Sometimes you just want plain text.
 
-`plaintext.gg` is a small, static, open-source plain text editor designed to stay out of the way. It runs entirely in the browser, saves text locally with IndexedDB, keeps preferences in `localStorage`, and avoids accounts, backends, analytics, and formatting features.
+`plaintext.gg` is a small, static, open-source plain text editor designed to stay out of the way. It runs entirely in the browser, saves text to IndexedDB, keeps preferences in `localStorage`, and has no accounts, backends, analytics, or formatting.
 
 ## What It Does
 
@@ -38,8 +38,7 @@ This starts a dev server at `http://localhost:3000`. Or serve the `public/` dire
 # Unit tests (no dependencies needed)
 pnpm test
 
-# E2E tests (one-time setup, then run)
-pnpm exec playwright install chromium
+# E2E tests (Chromium auto-installs via postinstall)
 pnpm run test:e2e
 
 # Type checking
@@ -54,6 +53,10 @@ pnpm run check
 The `public/` directory is the entire site. No build step. Deploy it to any static host.
 
 On pushes to `main`, GitHub Actions runs type checking, unit tests, and e2e tests, then deploys to the CDN.
+
+Security response headers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy) are set by the Bunny Pull Zone in production. `server.js` mirrors them — except HSTS — so regressions surface locally.
+
+The `deploy_bunny_storage` job runs under the `production` GitHub Environment; configure it with required reviewer approval and restrict it to `main` to protect the Bunny secrets.
 
 ## Privacy
 
