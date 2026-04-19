@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>plaintext.gg</title>
     <meta name="description" content="the distraction-free writing tool that strips formatting and does not use AI" />
     <meta name="keywords" content="plain text editor, distraction free writing, browser notes, plaintext.gg" />
@@ -35,18 +35,7 @@
       html[data-theme="dark"] { color-scheme: dark; }
       body { min-height: 100%; margin: 0; background: transparent; }
     </style>
-    <script>
-      (function () {
-        var theme = 'light';
-        try { theme = localStorage.getItem('plaintext:theme') === 'dark' ? 'dark' : 'light'; } catch (e) {}
-        var color = theme === 'dark' ? '#38342e' : '#fffdf7';
-        var root = document.documentElement;
-        root.dataset.theme = theme;
-        root.style.colorScheme = theme;
-        root.style.backgroundColor = color;
-        document.querySelectorAll('meta[name="theme-color"]').forEach(function (el) { el.content = color; });
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div class="app-shell loading" id="app-shell">
@@ -202,7 +191,7 @@
                 <button type="button" class="setting-toggle" id="btn-font-mono" role="radio" aria-checked="true" data-font="mono">mono</button>
                 <button type="button" class="setting-toggle" id="btn-font-sans" role="radio" aria-checked="false" data-font="sans-serif">sans-serif</button>
                 <button type="button" class="setting-toggle" id="btn-font-serif" role="radio" aria-checked="false" data-font="serif">serif</button>
-                <button type="button" class="setting-toggle" id="btn-font-dyslexic" role="radio" aria-checked="false" data-font="dyslexic">dyslexic</button>
+                <button type="button" class="setting-toggle" id="btn-font-dyslexic" role="radio" aria-checked="false" data-font="dyslexic" title="OpenDyslexic — a typeface designed to aid readers with dyslexia">dyslexic</button>
               </div>
             </div>
             <div class="setting">
@@ -247,9 +236,10 @@
           <div class="dialog-body">
             <form class="documents-create" id="documents-create">
               <label for="documents-create-input" class="sr-only">New document name</label>
-              <input type="text" class="documents-create-input" id="documents-create-input" placeholder="new-document" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?" maxlength="64" title="Lowercase letters, numbers, and hyphens. Must start and end with a letter or number." aria-describedby="documents-create-hint" />
+              <input type="text" class="documents-create-input" id="documents-create-input" placeholder="new-document" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?" maxlength="64" title="Lowercase letters, numbers, and hyphens. Must start and end with a letter or number." aria-describedby="documents-create-hint documents-create-error" />
               <button type="submit" class="setting-toggle documents-create-btn">create</button>
               <p id="documents-create-hint" class="sr-only">Lowercase letters, numbers, and hyphens. Must start and end with a letter or number.</p>
+              <p id="documents-create-error" class="documents-create-error" role="alert" hidden></p>
             </form>
             <div class="documents-sort setting-control--group" role="radiogroup" aria-label="Sort order">
               <button type="button" class="setting-toggle" id="btn-sort-alpha" role="radio" aria-checked="true">a-z</button>

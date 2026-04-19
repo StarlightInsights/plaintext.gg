@@ -8,6 +8,13 @@ const port = parseInt(process.argv[2] || '3000', 10);
 /** @type {string} */
 const publicDir = resolve('public');
 
+// Mirror of SLUG_PATTERN + MAX_SLUG_LENGTH from public/shared.js. Kept inline
+// to avoid pulling the browser module into the server's typecheck graph.
+/** @type {RegExp} */
+const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+/** @type {number} */
+const MAX_SLUG_LENGTH = 64;
+
 /** @type {Record<string, string>} */
 const TYPES = {
   html: 'text/html',
@@ -30,7 +37,7 @@ const TYPES = {
 const SECURITY_HEADERS = {
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
@@ -79,18 +86,24 @@ function handleRequest(req, res) {
       return;
     }
 
-    // SPA fallback: serve index.html for extensionless paths (document slugs)
+    // SPA fallback: serve index.html for extensionless paths that match the
+    // slug pattern. Invalid slugs 404 here instead of the client rendering its
+    // own 404 UI — keeps dev behavior closer to how prod should be configured.
     if (!extname(url)) {
-      readFile(resolve(publicDir, 'index.html'), (err2, html) => {
-        if (err2) { res.writeHead(500, SECURITY_HEADERS); res.end(); return; }
-        res.writeHead(200, {
-          ...SECURITY_HEADERS,
-          'Content-Type': 'text/html',
-          'Cache-Control': 'no-cache',
+      const slug = url.replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+      const slugIsValid = slug.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.test(slug);
+      if (slugIsValid) {
+        readFile(resolve(publicDir, 'index.html'), (err2, html) => {
+          if (err2) { res.writeHead(500, SECURITY_HEADERS); res.end(); return; }
+          res.writeHead(200, {
+            ...SECURITY_HEADERS,
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache',
+          });
+          res.end(html);
         });
-        res.end(html);
-      });
-      return;
+        return;
+      }
     }
 
     res.writeHead(404, SECURITY_HEADERS);

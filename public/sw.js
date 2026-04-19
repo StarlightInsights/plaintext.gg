@@ -9,15 +9,23 @@ const PRECACHE_URLS = [
   '/app.css',
   '/app.js',
   '/shared.js',
+  '/theme-init.js',
   '/manifest.webmanifest',
   '/icon.svg',
   '/icon-192.png',
   '/icon-512.png',
   '/apple-touch-icon.png',
   '/favicon.ico',
+  // Default font family (CommitMono) — all six variants reachable through the
+  // weight + italic toolbar toggles. Precaching them means every toggle works
+  // offline on first load, not just after the variant has been fetched once.
   '/fonts/commitmono/CommitMono-200-Regular.woff2',
+  '/fonts/commitmono/CommitMono-200-Italic.woff2',
   '/fonts/commitmono/CommitMono-250-Regular.woff2',
   '/fonts/commitmono/CommitMono-300-Regular.woff2',
+  '/fonts/commitmono/CommitMono-300-Italic.woff2',
+  '/fonts/commitmono/CommitMono-600-Regular.woff2',
+  '/fonts/commitmono/CommitMono-600-Italic.woff2',
 ];
 
 /**
@@ -44,8 +52,18 @@ function isNavigationRequest(url) {
 }
 
 sw.addEventListener('install', /** @param {ExtendableEvent} event */ (event) => {
+  // Per-URL add so one broken asset (e.g. a renamed font) doesn't throw out the
+  // whole precache and leave the app with no offline support.
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        PRECACHE_URLS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('[sw] precache failed for', url, err);
+          })
+        )
+      )
+    )
   );
   sw.skipWaiting();
 });
