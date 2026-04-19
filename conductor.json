@@ -1,0 +1,6 @@
+{
+    "scripts": {
+        "setup": "pnpm install && pnpm exec playwright install chromium",
+        "run": "node server.js $CONDUCTOR_PORT"
+    }
+}
