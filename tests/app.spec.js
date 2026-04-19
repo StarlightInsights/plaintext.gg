@@ -1,5 +1,26 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * Wait until IndexedDB's 'documents' store has persisted the expected text
+ * for the given slug. Replaces fixed waitForTimeout calls around the 300ms
+ * persist debounce — races on slow CI runners otherwise.
+ */
+async function waitForPersisted(page, slug, expected) {
+  await expect.poll(async () => {
+    return page.evaluate((s) => new Promise((resolve) => {
+      const req = indexedDB.open('plaintext', 1);
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction('documents', 'readonly');
+        const r = tx.objectStore('documents').get(s);
+        r.onsuccess = () => { db.close(); resolve(r.result ? r.result.text : null); };
+        r.onerror = () => { db.close(); resolve(null); };
+      };
+      req.onerror = () => resolve(null);
+    }), slug);
+  }, { timeout: 3000 }).toBe(expected);
+}
+
 // Helper: clear all browser storage before each test
 test.beforeEach(async ({ page, context }) => {
   // Clear IndexedDB, localStorage, sessionStorage
@@ -84,11 +105,8 @@ test.describe('Text editing', () => {
     await page.goto('/');
     const editor = page.locator('#editor');
     await editor.fill('persisted text');
-    // Trigger input event explicitly
     await editor.dispatchEvent('input');
-    // Wait for debounced persistence (300ms + some margin)
-    await page.waitForTimeout(500);
-    // Reload and check
+    await waitForPersisted(page, 'current', 'persisted text');
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     await expect(page.locator('#editor')).toHaveValue('persisted text');
@@ -113,10 +131,12 @@ test.describe('Text editing', () => {
     const editor = page.locator('#editor');
     await editor.fill('something');
     await editor.dispatchEvent('input');
-    await page.waitForTimeout(500);
+    await waitForPersisted(page, 'current', 'something');
     await editor.fill('');
     await editor.dispatchEvent('input');
-    await page.waitForTimeout(500);
+    // Empty documents are deleted from IDB rather than stored as '' — wait for
+    // the record to disappear.
+    await waitForPersisted(page, 'current', null);
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     await expect(page.locator('#editor')).toHaveValue('');
@@ -953,7 +973,7 @@ test.describe('Combined interactions', () => {
     const editor = page.locator('#editor');
     await editor.fill('before theme change');
     await editor.dispatchEvent('input');
-    await page.waitForTimeout(500);
+    await waitForPersisted(page, 'current', 'before theme change');
     await page.locator('#btn-theme').click();
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
@@ -985,8 +1005,7 @@ test.describe('Combined interactions', () => {
     // Type text
     await page.locator('#editor').fill('everything persists');
     await page.locator('#editor').dispatchEvent('input');
-    await page.waitForTimeout(500);
-    // Reload
+    await waitForPersisted(page, 'current', 'everything persists');
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     // All three should persist
@@ -1143,7 +1162,7 @@ test.describe('File upload', () => {
       buffer: Buffer.from('should persist'),
     });
     await expect(page.locator('#editor')).toHaveValue('should persist');
-    await page.waitForTimeout(500);
+    await waitForPersisted(page, 'current', 'should persist');
     await page.reload();
     await page.waitForSelector('#app-shell:not(.loading)');
     await expect(page.locator('#editor')).toHaveValue('should persist');

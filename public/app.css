@@ -370,15 +370,15 @@ textarea {
 
 .toggle-desktop {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
   z-index: 30;
 }
 
 .toggle-mobile {
   position: absolute;
-  top: 8px;
-  right: 12px;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
   z-index: 30;
 }
 
@@ -794,7 +794,20 @@ main.dragover::after {
 
 .documents-create {
   display: flex;
+  flex-wrap: wrap;
   gap: 0;
+}
+
+.documents-create-error {
+  width: 100%;
+  margin: 6px 0 0;
+  color: var(--text-error, #b44);
+  font-family: var(--font-dialog);
+  font-size: 0.75rem;
+}
+
+.documents-create-error[hidden] {
+  display: none;
 }
 
 .documents-create-input {

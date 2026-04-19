@@ -16,9 +16,16 @@ const PRECACHE_URLS = [
   '/icon-512.png',
   '/apple-touch-icon.png',
   '/favicon.ico',
+  // Default font family (CommitMono) — all six variants reachable through the
+  // weight + italic toolbar toggles. Precaching them means every toggle works
+  // offline on first load, not just after the variant has been fetched once.
   '/fonts/commitmono/CommitMono-200-Regular.woff2',
+  '/fonts/commitmono/CommitMono-200-Italic.woff2',
   '/fonts/commitmono/CommitMono-250-Regular.woff2',
   '/fonts/commitmono/CommitMono-300-Regular.woff2',
+  '/fonts/commitmono/CommitMono-300-Italic.woff2',
+  '/fonts/commitmono/CommitMono-600-Regular.woff2',
+  '/fonts/commitmono/CommitMono-600-Italic.woff2',
 ];
 
 /**

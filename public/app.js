@@ -458,6 +458,7 @@ import {
   var btnSortRecent = /** @type {HTMLButtonElement} */ (mustGet('btn-sort-recent'));
   var documentsCreateForm = /** @type {HTMLFormElement} */ (mustGet('documents-create'));
   var documentsCreateInput = /** @type {HTMLInputElement} */ (mustGet('documents-create-input'));
+  var documentsCreateError = /** @type {HTMLParagraphElement} */ (mustGet('documents-create-error'));
   var a11yAnnounce = /** @type {HTMLDivElement} */ (mustGet('a11y-announce'));
 
   // ---- State ----
@@ -1160,17 +1161,47 @@ import {
       listAllRecords().then(renderDocumentsList).catch(function () {});
     });
 
+    /**
+     * Show an inline error under the create-document form and announce it.
+     * @param {string} message
+     * @returns {void}
+     */
+    function showCreateError(message) {
+      documentsCreateError.textContent = message;
+      documentsCreateError.hidden = false;
+      announce(message);
+    }
+
+    /** @returns {void} */
+    function clearCreateError() {
+      if (!documentsCreateError.hidden) {
+        documentsCreateError.textContent = '';
+        documentsCreateError.hidden = true;
+      }
+    }
+
     documentsCreateInput.addEventListener('input', function () {
       documentsCreateInput.value = documentsCreateInput.value.toLowerCase().replace(/\s+/g, '-');
+      clearCreateError();
     });
 
     documentsCreateForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var raw = documentsCreateInput.value.trim();
-      if (!raw) return;
+      if (!raw) {
+        showCreateError('Enter a name for the document.');
+        documentsCreateInput.focus();
+        return;
+      }
       var slug = getSlugFromPath('/' + raw);
-      if (!slug || slug === 'current') {
-        documentsCreateInput.value = '';
+      if (!slug) {
+        showCreateError('Use only lowercase letters, numbers, and hyphens.');
+        documentsCreateInput.focus();
+        return;
+      }
+      if (slug === 'current') {
+        showCreateError('"current" is reserved. Pick a different name.');
+        documentsCreateInput.focus();
         return;
       }
       window.location.href = '/' + slug;
@@ -1364,6 +1395,7 @@ import {
 
     // Initialize text from persistence, then reveal the UI
     initPersistence().then(function () {
+      handleStartupQuery();
       return document.fonts ? document.fonts.ready.then(function () {}) : Promise.resolve();
     }).then(function () {
       applyEditorPadding();
@@ -1378,6 +1410,40 @@ import {
       // Reveal even if persistence fails
       appShell.classList.remove('loading');
     });
+
+    /**
+     * Handle query-string signals from PWA manifest entries:
+     *   - "?action=new" from the "New document" shortcut → open documents picker.
+     *   - "?text=...&title=...&url=..." from share_target → insert the shared
+     *     content into the editor (append to existing text so nothing is lost).
+     * Strips the query from the URL after handling so a reload doesn't replay it.
+     * @returns {void}
+     */
+    function handleStartupQuery() {
+      if (!window.location.search) return;
+      var params = new URLSearchParams(window.location.search);
+      var didHandle = false;
+
+      if (params.get('action') === 'new') {
+        openDocumentsDialog();
+        didHandle = true;
+      }
+
+      var shared = [params.get('title'), params.get('text'), params.get('url')]
+        .filter(function (s) { return s && s.length; })
+        .join('\n\n');
+      if (shared) {
+        var current = editorEl.value;
+        var combined = current ? current.replace(/\s*$/, '') + '\n\n' + shared : shared;
+        editorEl.value = combined;
+        editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+        didHandle = true;
+      }
+
+      if (didHandle) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+    }
 
     // Service worker
     if ('serviceWorker' in navigator) {

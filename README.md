@@ -35,10 +35,13 @@ This starts a dev server at `http://localhost:3000`. Or serve the `public/` dire
 ## Tests
 
 ```sh
-# Unit tests (no dependencies needed)
+# Unit + e2e (default test command)
 pnpm test
 
-# E2E tests (Chromium auto-installs via postinstall)
+# Unit tests only (no dependencies needed)
+pnpm run test:unit
+
+# E2E tests only (Chromium auto-installs via postinstall)
 pnpm run test:e2e
 
 # Type checking

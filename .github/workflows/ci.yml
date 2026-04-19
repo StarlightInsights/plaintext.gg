@@ -22,15 +22,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
           version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install
@@ -39,7 +40,7 @@ jobs:
         run: pnpm run typecheck
 
       - name: Unit tests
-        run: pnpm test
+        run: pnpm run test:unit
 
       - name: E2E tests
         run: pnpm run test:e2e
