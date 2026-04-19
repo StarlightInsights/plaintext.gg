@@ -680,6 +680,7 @@ import {
 
     btnToggleDesktop.setAttribute('aria-pressed', showToolbar ? 'false' : 'true');
     btnToggleDesktop.setAttribute('aria-label', showToolbar ? 'Hide navigation icons and editor controls' : 'Show navigation icons and editor controls');
+    btnToggleDesktop.setAttribute('data-tooltip', showToolbar ? 'hide' : 'show');
 
     applyEditorPadding();
   }
@@ -883,6 +884,7 @@ import {
     if (copyFeedbackTimeout) { clearTimeout(copyFeedbackTimeout); copyFeedbackTimeout = 0; }
     btnCopy.classList.remove('copy-success', 'copy-error');
     btnCopy.setAttribute('aria-label', 'Copy plain text');
+    btnCopy.setAttribute('data-tooltip', 'copy');
     iconCopy.style.display = '';
     iconCopyFeedback.style.display = 'none';
   }
@@ -896,6 +898,7 @@ import {
     clearCopyFeedback();
     btnCopy.classList.add(success ? 'copy-success' : 'copy-error');
     btnCopy.setAttribute('aria-label', success ? 'Copied' : 'Copy failed');
+    btnCopy.setAttribute('data-tooltip', success ? 'copied' : 'copy failed');
     announce(success ? 'Text copied to clipboard' : 'Copy failed');
     iconCopy.style.display = 'none';
     iconCopyFeedback.style.display = '';
