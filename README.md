@@ -38,8 +38,7 @@ This starts a dev server at `http://localhost:3000`. Or serve the `public/` dire
 # Unit tests (no dependencies needed)
 pnpm test
 
-# E2E tests (one-time setup, then run)
-pnpm exec playwright install chromium
+# E2E tests (Playwright's Chromium is installed automatically via postinstall)
 pnpm run test:e2e
 
 # Type checking
@@ -54,6 +53,10 @@ pnpm run check
 The `public/` directory is the entire site. No build step. Deploy it to any static host.
 
 On pushes to `main`, GitHub Actions runs type checking, unit tests, and e2e tests, then deploys to the CDN.
+
+The CDN (Bunny Pull Zone) is responsible for setting response security headers in production: `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy`. The dev server in `server.js` emits the same CSP/nosniff/XFO/Referrer/Permissions headers so regressions surface locally; HSTS is intentionally not set by the dev server.
+
+The `deploy_bunny_storage` job in `.github/workflows/ci.yml` runs under the `production` GitHub Environment. Configure that environment in the repository settings with required reviewer approval and limit it to the `main` branch so Bunny secrets cannot be exfiltrated via an unreviewed push.
 
 ## Privacy
 

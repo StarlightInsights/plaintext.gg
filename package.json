@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "preinstall": "node -e \"if(!process.env.npm_execpath?.includes('pnpm')){console.error('Use pnpm, not npm.');process.exit(1)}\"",
-    "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; node server.js",
+    "postinstall": "playwright install chromium",
+    "dev": "node server.js",
     "test": "node --test tests/editor.test.js",
     "test:e2e": "pnpm exec playwright test",
     "test:all": "node --test tests/editor.test.js && pnpm exec playwright test",
