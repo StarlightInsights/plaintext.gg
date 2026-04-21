@@ -371,7 +371,7 @@ test.describe('Toolbar blur transparency', () => {
     const backdropFilter = await toolbar.evaluate(
       (el) => getComputedStyle(el).backdropFilter
     );
-    expect(backdropFilter).toContain('blur(6px)');
+    expect(backdropFilter).toContain('blur(12px)');
   });
 });
 
