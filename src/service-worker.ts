@@ -10,14 +10,11 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE_NAME = `plaintext-${version}`;
 
 // Precache: app build chunks, all static files (fonts, icons, manifest), and
-// the navigation fallback '/'. One-per-URL adds so a single broken asset
-// doesn't poison the whole precache.
+// the navigation fallback '/'. Everything here is versioned via CACHE_NAME —
+// each deploy gets a fresh cache — so these URLs are safe to serve cache-first
+// without any revalidation.
 const PRECACHE_URLS = [...build, ...files, '/'];
-
-function isFontRequest(url: string): boolean {
-  const pathname = new URL(url).pathname;
-  return pathname.endsWith('.woff2') || pathname.endsWith('.otf') || pathname.endsWith('.ttf');
-}
+const PRECACHE_SET = new Set(PRECACHE_URLS);
 
 function isNavigationRequest(url: string): boolean {
   const pathname = new URL(url).pathname;
@@ -66,8 +63,11 @@ sw.addEventListener('activate', (event) => {
 sw.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Cache-first for fonts — immutable assets that never change between deploys.
-  if (isFontRequest(event.request.url)) {
+  const url = new URL(event.request.url);
+
+  // Cache-first for anything we precached. These URLs are versioned by
+  // CACHE_NAME, so revalidating them would just produce 304s on every load.
+  if (url.origin === sw.location.origin && PRECACHE_SET.has(url.pathname)) {
     event.respondWith(
       caches.match(event.request).then(
         (cached) =>
@@ -81,8 +81,9 @@ sw.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation/slug requests: fetch fresh, fall back to cached '/' offline.
-  // All slugs share the same HTML shell — the router reads the URL to load the right doc.
+  // Navigation/slug requests: fetch fresh so new deploys register the new SW,
+  // fall back to cached '/' offline. All slugs share the same HTML shell —
+  // the router reads the URL to load the right doc.
   if (isNavigationRequest(event.request.url)) {
     event.respondWith(
       fetch(event.request, { cache: 'no-cache' })
@@ -95,10 +96,9 @@ sw.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for app code (JS, CSS, icons, manifest). Always prefer fresh,
-  // fall back to cache when offline. { cache: 'no-cache' } forces revalidation.
+  // Anything else (unexpected same-origin assets): network-first, cache fallback.
   event.respondWith(
-    fetch(event.request, { cache: 'no-cache' })
+    fetch(event.request)
       .then((response) => {
         if (response.ok) cachePut(event.request, response.clone());
         return response;
