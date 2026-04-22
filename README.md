@@ -21,16 +21,16 @@ Sometimes you just want plain text.
 
 ## Local Development
 
-No framework, no bundler, no build step. The project uses `pnpm` as its package manager:
+Built with SvelteKit 2, Svelte 5, Tailwind v4, and Vite, using `pnpm` as the package manager and the static adapter to output a fully client-rendered SPA:
 
 ```sh
-git clone https://github.com/StarlightInsights/Plaintext.gg.git
-cd Plaintext.gg
+git clone https://github.com/StarlightInsights/plaintext.gg.git
+cd plaintext.gg
 pnpm install
 pnpm run dev
 ```
 
-This starts a dev server at `http://localhost:3000`. Or serve the `public/` directory with any static file server.
+This starts a dev server at `http://localhost:5173`. Run `pnpm run build` to produce the static site in `build/`, and `pnpm run preview` to serve it locally on port 3999.
 
 ## Tests
 
@@ -53,13 +53,11 @@ pnpm run check
 
 ## Deployment
 
-The `public/` directory is the entire site. No build step. Deploy it to any static host.
+The site ships as a Docker image built from the `Dockerfile`: a multi-stage build runs `pnpm run build` in a Node image, then copies the generated `build/` directory into an `nginx:alpine` image that serves it on port 80 using `nginx.conf`.
 
-On pushes to `main`, GitHub Actions runs type checking, unit tests, and e2e tests, then deploys to the CDN.
+CI runs on every pull request and on pushes to `main`: type checking, unit tests, and an e2e suite that runs Playwright against the actual production Docker image so the real nginx config (security headers, cache rules, SPA fallback) is exercised.
 
-Security response headers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy) are set by the Bunny Pull Zone in production. `server.js` mirrors them — except HSTS — so regressions surface locally.
-
-The `deploy_bunny_storage` job runs under the `production` GitHub Environment; configure it with required reviewer approval and restrict it to `main` to protect the Bunny secrets.
+Security response headers are split between nginx and SvelteKit: `nginx.conf` sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy`, while SvelteKit injects the CSP as a `<meta>` tag at build time (`kit.csp` in `svelte.config.js`). HSTS is expected to be added by the upstream TLS terminator.
 
 ## Privacy
 
@@ -86,4 +84,4 @@ If you make changes, keep the product intent intact: minimal UI, plain text firs
 ## Licenses
 
 - Project license: see [LICENSE](./LICENSE)
-- Font licenses: see [LICENSE-FONT](./public/fonts/LICENSE-FONT)
+- Font licenses: see [LICENSE-FONT](./static/fonts/LICENSE-FONT)
