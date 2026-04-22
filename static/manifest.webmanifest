@@ -3,11 +3,17 @@
   "name": "plaintext.gg",
   "short_name": "plaintext",
   "description": "A distraction-free plain text editor that saves locally in your browser.",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity"],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#38342e",
   "theme_color": "#38342e",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icon.svg",
@@ -39,6 +45,7 @@
   "share_target": {
     "action": "/",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",
