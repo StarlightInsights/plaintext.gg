@@ -2,9 +2,11 @@
   import Dialog from './Dialog.svelte';
   import { pillButton } from '../button-classes';
   import { goto } from '$app/navigation';
+  import { DEFAULT_SLUG } from '$lib/constants';
   import { getSlugFromPath } from '$lib/utils/slug';
   import { announcer } from '$lib/state/announce.svelte';
   import { documents } from '$lib/state/documents.svelte';
+  import type { DocumentRecord } from '$lib/types';
 
   let dialog: Dialog;
   let createInput: HTMLInputElement;
@@ -15,20 +17,24 @@
     dialog.show();
   }
 
-  const nonEmptyRecords = $derived(documents.records.filter((r) => r.text));
-
+  // The root document (`/`) is always shown first, even when empty, so users
+  // always have a way back to it from the picker.
   const sortedRecords = $derived.by(() => {
-    const list = [...nonEmptyRecords];
+    const others = documents.records.filter((r) => r.id !== DEFAULT_SLUG && r.text);
     if (documents.sortMode === 'recent') {
-      list.sort((a, b) => b.updatedAt - a.updatedAt);
+      others.sort((a, b) => b.updatedAt - a.updatedAt);
     } else {
-      list.sort((a, b) => {
-        if (a.id === 'current') return -1;
-        if (b.id === 'current') return 1;
-        return a.id.localeCompare(b.id);
-      });
+      others.sort((a, b) => a.id.localeCompare(b.id));
     }
-    return list;
+    const current = documents.records.find((r) => r.id === DEFAULT_SLUG);
+    const currentRecord: DocumentRecord = current ?? {
+      id: DEFAULT_SLUG,
+      text: '',
+      updatedAt: 0,
+      sourceTabId: '',
+      saveSequence: 0,
+    };
+    return [currentRecord, ...others];
   });
 
   function showError(message: string) {
@@ -158,7 +164,4 @@
       </li>
     {/each}
   </ul>
-  {#if sortedRecords.length === 0}
-    <p class="documents-empty m-0 text-muted font-dialog text-sm" id="documents-empty">no documents yet</p>
-  {/if}
 </Dialog>
