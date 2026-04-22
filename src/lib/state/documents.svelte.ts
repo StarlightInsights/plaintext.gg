@@ -56,6 +56,29 @@ class DocumentsState {
     this.currentSlug = slug;
   }
 
+  /**
+   * Switch to a different document. Flushes any pending edits on the outgoing
+   * slug, rotates the per-slug broadcast channel, clears in-memory text to
+   * avoid a flash of the previous document, then loads the new slug from
+   * IndexedDB (or sessionStorage draft).
+   */
+  async switchToSlug(slug: string): Promise<void> {
+    if (slug === this.currentSlug) return;
+
+    await this.flushPersistence().catch(() => {});
+    this.closeBroadcastChannel();
+
+    this.currentSlug = slug;
+    this.text = '';
+    this.#persistedVersion = null;
+    this.#pendingVersion = null;
+    this.#hasPendingEdits = false;
+    this.#applyText?.('');
+
+    this.openBroadcastChannel();
+    await this.initPersistence();
+  }
+
   setSortMode(mode: SortMode): void {
     this.sortMode = mode;
   }

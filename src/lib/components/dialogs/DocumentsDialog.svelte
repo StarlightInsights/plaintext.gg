@@ -1,6 +1,7 @@
 <script lang="ts">
   import Dialog from './Dialog.svelte';
   import { pillButton } from '../button-classes';
+  import { goto } from '$app/navigation';
   import { getSlugFromPath } from '$lib/utils/slug';
   import { announcer } from '$lib/state/announce.svelte';
   import { documents } from '$lib/state/documents.svelte';
@@ -45,7 +46,7 @@
     clearError();
   }
 
-  function handleCreateSubmit(e: SubmitEvent) {
+  async function handleCreateSubmit(e: SubmitEvent) {
     e.preventDefault();
     const raw = createInput.value.trim();
     if (!raw) {
@@ -64,7 +65,8 @@
       createInput.focus();
       return;
     }
-    window.location.href = '/' + slug;
+    dialog.close();
+    await goto('/' + slug);
   }
 
   function formatLink(id: string): string {
@@ -151,7 +153,7 @@
             record.id === documents.currentSlug ? 'active text-fg' : 'text-muted',
             i > 0 && 'border-t border-line',
           ]}
-          data-sveltekit-reload
+          onclick={() => dialog.close()}
         >{formatLink(record.id)}</a>
       </li>
     {/each}
