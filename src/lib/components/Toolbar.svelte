@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DocumentTitle from './DocumentTitle.svelte';
   import Icon from './Icon.svelte';
   import { iconButton } from './button-classes';
   import { COPY_FEEDBACK_MS } from '$lib/constants';
@@ -115,6 +116,7 @@
       <Icon name="info" />
     </button>
   </nav>
+  <DocumentTitle />
   <div
     class="toolbar-controls flex flex-wrap items-center gap-1 ms-auto max-sm:contents sm:ps-2"
     role="group"
