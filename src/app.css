@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* Self-hosted fonts (files under static/fonts/). Keep every weight listed in
+   AGENTS.md — don't trim even when a variant isn't currently referenced. */
+@font-face { font-family: "CommitMono";   src: url("/fonts/commitmono/CommitMono-200-Regular.woff2") format("woff2");     font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "CommitMono";   src: url("/fonts/commitmono/CommitMono-200-Italic.woff2")  format("woff2");     font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: "CommitMono";   src: url("/fonts/commitmono/CommitMono-300-Regular.woff2") format("woff2");     font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "CommitMono";   src: url("/fonts/commitmono/CommitMono-300-Italic.woff2")  format("woff2");     font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "CommitMono";   src: url("/fonts/commitmono/CommitMono-600-Regular.woff2") format("woff2");     font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "CommitMono";   src: url("/fonts/commitmono/CommitMono-600-Italic.woff2")  format("woff2");     font-weight: 600; font-style: italic; font-display: swap; }
+@font-face { font-family: "Roboto";       src: url("/fonts/roboto/Roboto-ExtraLight.ttf")            format("truetype");  font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "Roboto";       src: url("/fonts/roboto/Roboto-ExtraLightItalic.ttf")      format("truetype");  font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: "Roboto";       src: url("/fonts/roboto/Roboto-Light.ttf")                 format("truetype");  font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Roboto";       src: url("/fonts/roboto/Roboto-LightItalic.ttf")           format("truetype");  font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Roboto";       src: url("/fonts/roboto/Roboto-Regular.ttf")               format("truetype");  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Roboto";       src: url("/fonts/roboto/Roboto-Italic.ttf")                format("truetype");  font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "OpenDyslexic"; src: url("/fonts/opendyslexic/OpenDyslexic-Regular.otf")   format("opentype");  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "OpenDyslexic"; src: url("/fonts/opendyslexic/OpenDyslexic-Italic.otf")    format("opentype");  font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "OpenDyslexic"; src: url("/fonts/opendyslexic/OpenDyslexic-Bold.otf")      format("opentype");  font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "OpenDyslexic"; src: url("/fonts/opendyslexic/OpenDyslexic-BoldItalic.otf") format("opentype"); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: "EBGaramond";   src: url("/fonts/ebgaramond/EBGaramond-Regular.ttf")       format("truetype");  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "EBGaramond";   src: url("/fonts/ebgaramond/EBGaramond-Italic.ttf")        format("truetype");  font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "EBGaramond";   src: url("/fonts/ebgaramond/EBGaramond-Medium.ttf")        format("truetype");  font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "EBGaramond";   src: url("/fonts/ebgaramond/EBGaramond-MediumItalic.ttf")  format("truetype");  font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "CommitMono-250"; src: url("/fonts/commitmono/CommitMono-250-Regular.woff2") format("woff2");   font-weight: 250; font-style: normal; font-display: swap; }
+@font-face { font-family: "CommitMono-200"; src: url("/fonts/commitmono/CommitMono-200-Regular.woff2") format("woff2");   font-weight: 200; font-style: normal; font-display: swap; }
+
+/* Tailwind sees these names as color/font utilities (`bg-bg`, `font-header`…).
+   Values point at the runtime CSS vars below so theme swap cascades through. */
+@theme {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel-bg);
+  --color-line: var(--border);
+  --color-panel-line: var(--panel-border);
+  --color-fg: var(--text-primary);
+  --color-muted: var(--text-muted);
+  --color-secondary: var(--text-secondary);
+  --color-placeholder: var(--text-placeholder);
+  --color-error: var(--feedback-error);
+  --color-overlay: var(--overlay);
+
+  --font-main: "CommitMono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-header: "CommitMono-250", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-dialog: "CommitMono-200", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --animate-toolbar-slide-in: toolbar-slide-in 180ms ease-out;
+  @keyframes toolbar-slide-in {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Runtime theme swap — the dark block only overrides the vars @theme reads. */
+:root {
+  --bg: oklch(1 0 89.88);
+  --panel-bg: oklch(1 0 89.88);
+  --border: oklch(0.922 0 89.88);
+  --panel-border: oklch(0.8 0 89.88);
+  --text-primary: oklch(0.218 0 89.88);
+  --text-muted: oklch(0.50 0 89.88);
+  --text-secondary: oklch(0.683 0 89.88);
+  --text-placeholder: oklch(0.845 0 89.88);
+  --feedback-error: oklch(0.58 0.18 23);
+  --overlay: oklch(0 0 0 / 0.4);
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  --bg: oklch(0.218 0 89.88);
+  --panel-bg: oklch(0.252 0 89.88);
+  --border: oklch(0.285 0 89.88);
+  --panel-border: oklch(0.321 0 89.88);
+  --text-primary: oklch(0.907 0 89.88);
+  --text-muted: oklch(0.51 0 89.88);
+  --text-secondary: oklch(0.51 0 89.88);
+  --text-placeholder: oklch(0.387 0 89.88);
+  --feedback-error: oklch(0.72 0.17 23);
+  --overlay: oklch(0 0 0 / 0.667);
+  color-scheme: dark;
+}
+
+/* Tooltip. Pseudo-element + attr() — no utility equivalent for content. */
+[data-tooltip] { position: relative; }
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-fg);
+  color: var(--color-bg);
+  font: 300 0.75rem/1 var(--font-header);
+  padding: 4px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 80ms ease-out;
+  z-index: 30;
+}
+@media (hover: hover) { [data-tooltip]:hover::after { opacity: 1; } }
+.tooltip-up[data-tooltip]::after { top: auto; bottom: calc(100% + 4px); }
+
+/* Native <dialog> fade. `@starting-style` + `allow-discrete` have no Tailwind
+   shortcut for `display` / `overlay` transitions — keep declarative here. */
+dialog {
+  opacity: 0;
+  transition: opacity 100ms ease-in, overlay 100ms ease-in allow-discrete, display 100ms ease-in allow-discrete;
+}
+dialog[open] {
+  opacity: 1;
+  transition: opacity 160ms ease-out, overlay 160ms ease-out allow-discrete, display 160ms ease-out allow-discrete;
+  @starting-style { opacity: 0; }
+}
+dialog::backdrop {
+  background-color: var(--color-overlay);
+  opacity: 0;
+  transition: opacity 80ms ease-in, overlay 80ms ease-in allow-discrete, display 80ms ease-in allow-discrete;
+}
+dialog[open]::backdrop {
+  opacity: 1;
+  @starting-style { opacity: 0; }
+}
+
+/* Universal reduced-motion kill switch — can't scope to every element via utilities. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

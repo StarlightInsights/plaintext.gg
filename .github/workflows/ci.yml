@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install dependencies
@@ -42,31 +42,31 @@ jobs:
       - name: Unit tests
         run: pnpm run test:unit
 
+      # E2E tests run against the actual production Docker image so we exercise
+      # the real nginx config + static-file serving + SPA fallback.
+      - name: Build Docker image
+        run: docker build -t plaintext-gg .
+
+      - name: Start container
+        run: docker run -d --rm -p 3999:80 --name plaintext-gg plaintext-gg
+
+      - name: Wait for container to be ready
+        run: |
+          timeout 30 bash -c 'until curl -sf http://localhost:3999 > /dev/null; do sleep 1; done' \
+            || { echo "Container failed to become ready"; docker logs plaintext-gg; exit 1; }
+
       - name: E2E tests
+        env:
+          # Opts the `tests/e2e/nginx.spec.ts` suite in — those tests assert
+          # nginx-specific behavior (security headers, cache-control, SPA
+          # fallback status codes) that vite preview doesn't mirror.
+          TEST_DOCKER_HOSTING: '1'
         run: pnpm run test:e2e
 
-  deploy_bunny_storage:
-    name: Deploy To Bunny Storage
-    runs-on: ubuntu-latest
-    needs: verify
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    environment: production
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker logs plaintext-gg
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Deploy to Bunny Storage
-        env:
-          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
-          BUNNY_PULL_ZONE_ID: ${{ secrets.BUNNY_PULL_ZONE_ID }}
-          BUNNY_STORAGE_ENDPOINT: ${{ secrets.BUNNY_STORAGE_ENDPOINT }}
-          BUNNY_STORAGE_PASSWORD: ${{ secrets.BUNNY_STORAGE_PASSWORD }}
-          BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE }}
-          BUNNY_SOURCE_DIR: public
-        run: node ./scripts/deploy-bunny-storage.mjs
+      - name: Stop container
+        if: always()
+        run: docker stop plaintext-gg || true

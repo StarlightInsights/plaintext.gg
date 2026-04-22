@@ -1,6 +1,6 @@
 {
     "scripts": {
         "setup": "pnpm install && pnpm exec playwright install chromium",
-        "run": "node server.js $CONDUCTOR_PORT"
+        "run": "pnpm exec vite dev --port $CONDUCTOR_PORT --host"
     }
 }
