@@ -34,4 +34,8 @@
     self hostable and open sourced at
     <a class="text-muted hover:text-fg focus-visible:text-fg focus-visible:outline-2 focus-visible:outline-muted focus-visible:outline-offset-1 focus-visible:rounded-[2px] transition-colors duration-[180ms] ease-out" href="https://github.com/StarlightInsights/plaintext.gg" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (opens in new tab)</span></a>.
   </p>
+  <p class="m-0"><strong class="font-main font-semibold">sister sites:</strong></p>
+  <p class="m-0">
+    <a class="text-muted hover:text-fg focus-visible:text-fg focus-visible:outline-2 focus-visible:outline-muted focus-visible:outline-offset-1 focus-visible:rounded-[2px] transition-colors duration-[180ms] ease-out" href="https://youshallnotpass.io/" target="_blank" rel="noopener noreferrer">YouShallNotPass.io<span class="sr-only"> (opens in new tab)</span></a>
+  </p>
 </Dialog>
