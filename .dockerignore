@@ -3,6 +3,8 @@
 .gitignore
 .dockerignore
 Dockerfile
+fly.toml
+fly.preview.toml
 .svelte-kit
 build
 node_modules

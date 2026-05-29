@@ -1,0 +1,21 @@
+# Per-PR preview app config (consumed by .github/workflows/fly-preview.yml).
+#
+# Differs from fly.toml: the app name is supplied by the fly-pr-review-apps
+# action (one app per PR), and previews are allowed to cold-start / scale to
+# zero since they only need to be up while someone is reviewing the PR.
+
+primary_region = 'fra'
+
+[build]
+
+[http_service]
+internal_port = 80
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+[[vm]]
+memory = '256mb'
+cpus = 1
