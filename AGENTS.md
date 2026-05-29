@@ -1,3 +1,13 @@
+# Philosophy
+
+- **Honest by default.** Every claim in the UI must be literally true and
+  verifiable in the code — no overstatement, no marketing that outruns the
+  implementation.
+- **Aggressively minimal dependencies.**
+- **No externally hosted assets.** Everything is bundled and self-hosted so the
+  app runs in a single container with no CDN dependencies.
+- **Server never sees any user data.**
+
 # Rules
 
 - Agents must never merge anything into the main branch under any circumstances.

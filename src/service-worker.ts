@@ -9,6 +9,10 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 
 const CACHE_NAME = `plaintext-${version}`;
 
+// Cache key under which a POST share-target payload is stashed for the client to
+// pick up after the redirect. Must match the path read in AppShell.svelte.
+const SHARE_STASH_PATH = "/__shared__";
+
 // Precache: app build chunks, all static files (fonts, icons, manifest), and
 // the navigation fallback '/'. Everything here is versioned via CACHE_NAME —
 // each deploy gets a fresh cache — so these URLs are safe to serve cache-first
@@ -21,6 +25,19 @@ function isNavigationRequest(url: string): boolean {
   if (pathname.indexOf(".") !== -1) return false;
   if (pathname.startsWith("/fonts/")) return false;
   return true;
+}
+
+/**
+ * Detect navigations that carry user-supplied data in the query string: the
+ * Web Share Target (`?title=&text=&url=`, see manifest `share_target`) and the
+ * `?action=new` app shortcut. These must be served from the cached shell so the
+ * shared text is never forwarded to the server — the client reads the params
+ * from `location.search` and then strips them. Keeps the "nothing is sent to
+ * any server, ever" guarantee literally true for the share path.
+ */
+function isQueryBearingNavigation(url: string): boolean {
+  const params = new URL(url).searchParams;
+  return params.has("title") || params.has("text") || params.has("url") || params.has("action");
 }
 
 /**
@@ -37,6 +54,38 @@ function cachePut(key: Request, response: Response): void {
 
 function offlineFallback(): Response {
   return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
+}
+
+function formValue(form: FormData, key: string): string {
+  const v = form.get(key);
+  return typeof v === "string" ? v : "";
+}
+
+/**
+ * Web Share Target handler (POST). The shared payload arrives in the request
+ * body, never the URL. We read it, stash it in the (same-origin, versioned)
+ * cache, and redirect to a clean URL — so the shared text is consumed entirely
+ * on-device and never forwarded to the server. The client reads the stash from
+ * the Cache API and deletes it. Because it's a POST body, even if the SW were
+ * somehow not in control, nginx would not write it to its access log.
+ */
+async function handleShareTarget(request: Request): Promise<Response> {
+  try {
+    const form = await request.formData();
+    const payload = JSON.stringify({
+      title: formValue(form, "title"),
+      text: formValue(form, "text"),
+      url: formValue(form, "url"),
+    });
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(
+      new Request(SHARE_STASH_PATH),
+      new Response(payload, { headers: { "Content-Type": "application/json" } }),
+    );
+  } catch {
+    /* even on failure, fall through to a clean shell rather than erroring */
+  }
+  return Response.redirect(`${sw.location.origin}/?share-target=1`, 303);
 }
 
 sw.addEventListener("install", (event) => {
@@ -66,9 +115,20 @@ sw.addEventListener("activate", (event) => {
 });
 
 sw.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-
   const url = new URL(event.request.url);
+
+  // Web Share Target (POST → action "/"): consume the payload in the SW so it
+  // never reaches the network. See handleShareTarget.
+  if (
+    event.request.method === "POST" &&
+    url.origin === sw.location.origin &&
+    url.pathname === "/"
+  ) {
+    event.respondWith(handleShareTarget(event.request));
+    return;
+  }
+
+  if (event.request.method !== "GET") return;
 
   // Cache-first for anything we precached. These URLs are versioned by
   // CACHE_NAME, so revalidating them would just produce 304s on every load.
@@ -81,6 +141,26 @@ sw.addEventListener("fetch", (event) => {
             if (response.ok) cachePut(event.request, response.clone());
             return response;
           }),
+      ),
+    );
+    return;
+  }
+
+  // Share-target / shortcut navigations carry user data in the query string.
+  // Serve the cached shell directly (never hitting the network with the query)
+  // so the shared text stays on the device. The browser keeps the original URL,
+  // so the client still reads the params from `location.search`.
+  if (isNavigationRequest(event.request.url) && isQueryBearingNavigation(event.request.url)) {
+    event.respondWith(
+      caches.match("/").then(
+        (cached) =>
+          cached ??
+          fetch("/")
+            .then((response) => {
+              if (response.ok) cachePut(new Request("/"), response.clone());
+              return response;
+            })
+            .catch(() => offlineFallback()),
       ),
     );
     return;
