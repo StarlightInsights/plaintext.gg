@@ -57,7 +57,9 @@ The site ships as a Docker image built from the `Dockerfile`: a multi-stage buil
 
 CI runs on every pull request and on pushes to `main`: type checking, unit tests, and an e2e suite that runs Playwright against the actual production Docker image so the real nginx config (security headers, cache rules, SPA fallback) is exercised.
 
-Security response headers are split between nginx and SvelteKit: `nginx.conf` sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy`, while SvelteKit injects the CSP as a `<meta>` tag at build time (`kit.csp` in `svelte.config.js`). HSTS is expected to be added by the upstream TLS terminator.
+The site is hosted on [Fly.io](https://fly.io/) (app `plaintext-gg`, region `fra`), configured in `fly.toml`. Pushing to `main` triggers the `Fly Deploy` workflow (`.github/workflows/fly-deploy.yml`), which runs `flyctl deploy --remote-only` to build the `Dockerfile` and roll out a new release. Every pull request gets an ephemeral preview app via `.github/workflows/fly-preview.yml` (using `fly.preview.toml`); the preview URL is posted as a PR comment and torn down when the PR closes. Fly terminates TLS at its edge (`force_https`) and proxies to nginx on port 80. `nginx.conf` 301-redirects `www.plaintext.gg` to the apex `plaintext.gg`, so the apex is the canonical host.
+
+Security response headers are split between nginx and SvelteKit: `nginx.conf` sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy`, while SvelteKit injects the CSP as a `<meta>` tag at build time (`kit.csp` in `svelte.config.js`). HSTS is added by Fly's TLS terminator.
 
 ## Privacy
 
