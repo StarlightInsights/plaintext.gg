@@ -30,7 +30,7 @@
     (async () => {
       try {
         await documents.initPersistence();
-        handleStartupQuery();
+        await handleStartupQuery();
         if (document.fonts) await document.fonts.ready;
       } catch {
         /* fall through to reveal UI */
@@ -48,7 +48,36 @@
     };
   });
 
-  function handleStartupQuery(): void {
+  // Cache key the service worker stashes a POST share-target payload under.
+  // Must match SHARE_STASH_PATH in service-worker.ts.
+  const SHARE_STASH_PATH = '/__shared__';
+
+  function joinShared(title: unknown, text: unknown, url: unknown): string {
+    return [title, text, url].filter((s): s is string => typeof s === 'string' && s.length > 0).join('\n\n');
+  }
+
+  // Read (and consume) the shared payload the service worker stashed for the
+  // POST share target. Deletes the entry from every cache so it's one-shot.
+  async function readSharedStash(): Promise<string> {
+    if (typeof caches === 'undefined') return '';
+    try {
+      const res = await caches.match(SHARE_STASH_PATH);
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.map(async (k) => {
+          const c = await caches.open(k);
+          await c.delete(SHARE_STASH_PATH);
+        })
+      );
+      if (!res) return '';
+      const data = (await res.json()) as { title?: string; text?: string; url?: string };
+      return joinShared(data.title, data.text, data.url);
+    } catch {
+      return '';
+    }
+  }
+
+  async function handleStartupQuery(): Promise<void> {
     if (!window.location.search) return;
     const params = new URLSearchParams(window.location.search);
     let didHandle = false;
@@ -58,9 +87,12 @@
       didHandle = true;
     }
 
-    const shared = [params.get('title'), params.get('text'), params.get('url')]
-      .filter((s) => s && s.length)
-      .join('\n\n');
+    // Shared text arrives via the POST share target (stashed on-device by the
+    // service worker, flagged with ?share-target) or, for installs that
+    // predate the POST switch, as legacy GET params. Both stay on-device.
+    const shared = params.has('share-target')
+      ? await readSharedStash()
+      : joinShared(params.get('title'), params.get('text'), params.get('url'));
     if (shared && editorEl) {
       const current = editorEl.value;
       const combined = current ? current.replace(/\s*$/, '') + '\n\n' + shared : shared;
