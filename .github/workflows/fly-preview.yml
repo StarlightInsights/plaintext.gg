@@ -27,7 +27,7 @@ jobs:
 
       - name: Comment preview URL on PR
         if: github.event.action != 'closed' && steps.deploy.outputs.url != ''
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: fly-preview
           message: |
