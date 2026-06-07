@@ -6,6 +6,7 @@
 
 /** Square icon button (toolbar + toggles). Touch targets expand on small screens. */
 export const iconButton =
+  "btn btn-icon " +
   "inline-flex items-center justify-center bg-transparent border-0 p-1 w-8 h-8 " +
   "text-muted cursor-pointer touch-manipulation " +
   "transition-[color,opacity] duration-[160ms] ease-out " +
@@ -33,3 +34,9 @@ export const stepButton =
   "hover:text-fg " +
   "focus-visible:text-fg focus-visible:outline-2 focus-visible:outline-muted focus-visible:outline-offset-2 focus-visible:rounded-[2px] " +
   "disabled:cursor-default disabled:text-placeholder";
+
+/** External-link anchor inside dialogs (muted text, hover/focus-visible treatment). */
+export const dialogLink =
+  "text-muted hover:text-fg " +
+  "focus-visible:text-fg focus-visible:outline-2 focus-visible:outline-muted focus-visible:outline-offset-1 focus-visible:rounded-[2px] " +
+  "transition-colors duration-[180ms] ease-out";

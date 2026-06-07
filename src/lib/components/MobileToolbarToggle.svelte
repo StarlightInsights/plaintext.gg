@@ -18,8 +18,8 @@
     aria-label="Show navigation icons and editor controls"
     data-tooltip="show"
     class={[
-      'btn btn-icon btn-float tooltip-up',
       iconButton,
+      'btn-float tooltip-up',
       'opacity-60 hover:opacity-100 focus-visible:opacity-100',
     ]}
     onclick={() => preferences.toggleToolbar()}

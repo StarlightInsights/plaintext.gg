@@ -2,7 +2,8 @@
   import Dialog from './Dialog.svelte';
   import Icon from '../Icon.svelte';
   import { pillButton, stepButton } from '../button-classes';
-  import { FONT_FAMILY_WEIGHTS, FONT_STEP, MAX_FONT_SIZE, MIN_FONT_SIZE } from '$lib/constants';
+  import { FONT_STEP, MAX_FONT_SIZE, MIN_FONT_SIZE } from '$lib/constants';
+  import { isWeightSupported } from '$lib/utils/fonts';
   import { preferences } from '$lib/state/preferences.svelte';
   import type { FontFamily } from '$lib/types';
 
@@ -10,11 +11,6 @@
 
   export function show(): void {
     dialog?.show();
-  }
-
-  function isWeightSupported(weight: number): boolean {
-    const supported = FONT_FAMILY_WEIGHTS[preferences.fontFamily] ?? FONT_FAMILY_WEIGHTS.mono;
-    return supported.includes(weight);
   }
 
   const fontOptions: { id: string; key: FontFamily; label: string; title?: string }[] = [
@@ -107,7 +103,7 @@
           role="radio"
           aria-checked={preferences.fontWeight === opt.weight}
           data-weight={opt.weight}
-          disabled={!isWeightSupported(opt.weight)}
+          disabled={!isWeightSupported(preferences.fontFamily, opt.weight)}
           onclick={() => preferences.setFontWeight(opt.weight)}
         >
           {opt.label}

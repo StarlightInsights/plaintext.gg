@@ -67,7 +67,7 @@
       createInput.focus();
       return;
     }
-    if (slug === 'current') {
+    if (slug === DEFAULT_SLUG) {
       showError('"current" is reserved. Pick a different name.');
       createInput.focus();
       return;
@@ -77,7 +77,7 @@
   }
 
   function formatLink(id: string): string {
-    return id === 'current' ? '/' : '/' + id;
+    return id === DEFAULT_SLUG ? '/' : '/' + id;
   }
 
   const sortToggle = `setting-toggle flex-1 ${pillButton}`;

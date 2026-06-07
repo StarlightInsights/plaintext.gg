@@ -86,7 +86,7 @@
     copyState === 'success' ? 'copied' : copyState === 'error' ? 'copy failed' : 'copy'
   );
 
-  const btnIcon = `btn btn-icon ${iconButton}`;
+  const btnIcon = iconButton;
 </script>
 
 <header

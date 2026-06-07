@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { waitForAppReady } from "./helpers";
 
 async function resetStorage(page: Page) {
   await page.goto("/");
@@ -21,38 +22,38 @@ test.beforeEach(async ({ page }) => {
 test.describe("Multi-document slug routing", () => {
   test("different slugs persist independent text", async ({ page }) => {
     await page.goto("/doc-a");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     const editor = page.locator("#editor");
     await editor.fill("alpha content");
     await editor.dispatchEvent("input");
     await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
 
     await page.goto("/doc-b");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(editor).toHaveValue("");
     await editor.fill("beta content");
     await editor.dispatchEvent("input");
     await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
 
     await page.goto("/doc-a");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(editor).toHaveValue("alpha content");
 
     await page.goto("/doc-b");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(editor).toHaveValue("beta content");
   });
 
   test('root path uses the "current" slug by default', async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     const editor = page.locator("#editor");
     await editor.fill("root text");
     await editor.dispatchEvent("input");
     await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
 
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(editor).toHaveValue("root text");
 
     const storedSlug = await page.evaluate(
@@ -85,7 +86,7 @@ test.describe("Multi-document slug routing", () => {
   test("valid slug path returns the app shell", async ({ page }) => {
     const response = await page.goto("/my-notes");
     expect(response?.status()).toBe(200);
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#editor")).toBeVisible();
   });
 });
@@ -93,7 +94,7 @@ test.describe("Multi-document slug routing", () => {
 test.describe("Documents picker slug validation", () => {
   async function openDocumentsDialog(page: Page) {
     await page.goto("/");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await page.evaluate(() => {
       localStorage.setItem("plaintext:toolbarIcons", "visible");
       window.dispatchEvent(

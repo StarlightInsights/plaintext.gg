@@ -1,3 +1,4 @@
+import { isVersionShape } from "../utils/versions";
 import type { DocumentRecord } from "../types";
 
 const DB_NAME = "plaintext";
@@ -18,6 +19,14 @@ function wrapRequest<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed."));
+  });
+}
+
+function awaitTransaction(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed."));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted."));
   });
 }
 
@@ -55,13 +64,7 @@ export function openDb(): Promise<IDBDatabase> {
 function isValidRecord(value: unknown): value is DocumentRecord {
   if (!value || typeof value !== "object") return false;
   const r = value as Record<string, unknown>;
-  return (
-    typeof r.id === "string" &&
-    typeof r.text === "string" &&
-    typeof r.updatedAt === "number" &&
-    typeof r.sourceTabId === "string" &&
-    typeof r.saveSequence === "number"
-  );
+  return typeof r.id === "string" && typeof r.text === "string" && isVersionShape(r);
 }
 
 export async function loadRecord(id: string): Promise<DocumentRecord | null> {
@@ -83,11 +86,7 @@ export async function saveRecord(record: DocumentRecord): Promise<DocumentRecord
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
   await wrapRequest(store.put(record));
-  await new Promise<void>((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed."));
-    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted."));
-  });
+  await awaitTransaction(tx);
   return record;
 }
 
@@ -96,11 +95,7 @@ export async function deleteRecord(id: string): Promise<void> {
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
   await wrapRequest(store.delete(id));
-  await new Promise<void>((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed."));
-    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted."));
-  });
+  await awaitTransaction(tx);
 }
 
 export async function listRecords(): Promise<DocumentRecord[]> {

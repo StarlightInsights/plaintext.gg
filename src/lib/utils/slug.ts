@@ -5,9 +5,7 @@ export function getSlugFromPath(pathname: string): string | null {
   if (!stripped) return DEFAULT_SLUG;
   if (stripped.indexOf("/") !== -1) return null;
   const segment = stripped.toLowerCase();
-  if (segment.length > MAX_SLUG_LENGTH) return null;
-  if (segment.indexOf(".") !== -1) return null;
-  if (!SLUG_PATTERN.test(segment)) return null;
+  if (!isValidSlug(segment)) return null;
   return segment;
 }
 
