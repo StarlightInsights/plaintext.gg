@@ -23,3 +23,6 @@ yarn-debug.log*
 
 # Conductor workspace scratch
 .context/
+
+# Conductor local settings overrides (per-machine; shared config lives in .conductor/settings.toml)
+.conductor/settings.local.toml

@@ -31,7 +31,7 @@ For each major bump:
 
 - Skim the release notes / changelog for breaking changes and deprecations.
 - Grep the codebase for usages of changed/removed APIs and migrate them.
-- Update `conductor.json` scripts if any commands or flags changed, and confirm they still run.
+- Update `.conductor/settings.toml` scripts if any commands or flags changed, and confirm they still run.
 
 ## 4. Verify
 
