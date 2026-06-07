@@ -22,7 +22,7 @@
     aria-label={label}
     data-tooltip={tooltip}
     onclick={() => preferences.toggleToolbar()}
-    class="btn btn-icon {iconButton}"
+    class={iconButton}
   >
     <Icon name="eye-open" id="icon-eye-open" hidden={!preferences.toolbarVisible} />
     <Icon name="eye-closed" id="icon-eye-closed" hidden={preferences.toolbarVisible} />

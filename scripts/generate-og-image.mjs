@@ -1,4 +1,4 @@
-// Regenerates public/og-image.png (1200×630) using Playwright to render an
+// Regenerates static/og-image.png (1200×630) using Playwright to render an
 // HTML card with the site's palette and typography. Run manually when the
 // branding changes: `node scripts/generate-og-image.mjs`.
 // The output PNG is committed — this is not part of the build.
@@ -9,8 +9,8 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const publicDir = join(__dirname, "..", "public");
-const fontsDir = join(publicDir, "fonts", "commitmono");
+const staticDir = join(__dirname, "..", "static");
+const fontsDir = join(staticDir, "fonts", "commitmono");
 
 async function fontDataUrl(filename) {
   const bytes = await readFile(join(fontsDir, filename));
@@ -90,8 +90,8 @@ const page = await context.newPage();
 await page.setContent(html, { waitUntil: "networkidle" });
 await page.evaluateHandle("document.fonts.ready");
 
-const outPath = join(publicDir, "og-image.png");
-await mkdir(publicDir, { recursive: true });
+const outPath = join(staticDir, "og-image.png");
+await mkdir(staticDir, { recursive: true });
 await page.screenshot({ path: outPath, type: "png", fullPage: false });
 await browser.close();
 

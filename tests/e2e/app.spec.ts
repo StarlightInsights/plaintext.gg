@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { waitForAppReady } from "./helpers";
 
 /**
  * Wait until IndexedDB's 'documents' store has persisted the expected text
@@ -32,6 +33,51 @@ async function waitForPersisted(page: Page, slug: string, expected: string | nul
       { timeout: 3000 },
     )
     .toBe(expected);
+}
+
+const openDialog = (page: Page, id: string) =>
+  page.locator(`#${id}`).evaluate((el) => (el as HTMLDialogElement).showModal());
+
+const closeDialog = (page: Page, id: string) =>
+  page.locator(`#${id}`).evaluate((el) => (el as HTMLDialogElement).close());
+
+const editorFontSize = (page: Page): Promise<number> =>
+  page.locator("#editor").evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+
+const editorFontWeight = (page: Page): Promise<number> =>
+  page.locator("#editor").evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
+
+const editorFontStyle = (page: Page): Promise<string> =>
+  page.locator("#editor").evaluate((el) => (el as HTMLElement).style.fontStyle);
+
+async function dispatchStorage(page: Page, key: string, newValue: string) {
+  await page.evaluate(
+    ([k, v]) => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: k, newValue: v, storageArea: localStorage }),
+      );
+    },
+    [key, newValue],
+  );
+}
+
+async function dispatchDrag(
+  locator: ReturnType<Page["locator"]>,
+  type: "dragover" | "drop",
+  files: { name: string; content: string | Uint8Array; type: string }[],
+) {
+  await locator.evaluate(
+    (el, { type, files }) => {
+      const dt = new DataTransfer();
+      for (const f of files) {
+        dt.items.add(new File([f.content as BlobPart], f.name, { type: f.type }));
+      }
+      el.dispatchEvent(
+        new DragEvent(type, { dataTransfer: dt, bubbles: true, cancelable: type === "drop" }),
+      );
+    },
+    { type, files },
+  );
 }
 
 test.beforeEach(async ({ page, context }) => {
@@ -120,7 +166,7 @@ test.describe("Text editing", () => {
     await editor.dispatchEvent("input");
     await waitForPersisted(page, "current", "persisted text");
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#editor")).toHaveValue("persisted text");
   });
 
@@ -146,7 +192,7 @@ test.describe("Text editing", () => {
     await editor.dispatchEvent("input");
     await waitForPersisted(page, "current", null);
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#editor")).toHaveValue("");
   });
 });
@@ -218,68 +264,60 @@ test.describe("Theme toggle", () => {
 test.describe("Font size controls", () => {
   test("increase font size button works", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
-    const editor = page.locator("#editor");
-    const before = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    await openDialog(page, "dialog-settings");
+    const before = await editorFontSize(page);
     await page.locator("#btn-font-up").click();
-    const after = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    const after = await editorFontSize(page);
     expect(after).toBe(before + 2);
   });
 
   test("decrease font size button works", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
-    const editor = page.locator("#editor");
-    const before = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    await openDialog(page, "dialog-settings");
+    const before = await editorFontSize(page);
     await page.locator("#btn-font-down").click();
-    const after = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    const after = await editorFontSize(page);
     expect(after).toBe(before - 2);
   });
 
   test("font size cannot go below minimum (10px)", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     const btn = page.locator("#btn-font-down");
     while (!(await btn.isDisabled())) {
       await btn.click();
     }
-    const size = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    const size = await editorFontSize(page);
     expect(size).toBe(10);
     await expect(btn).toBeDisabled();
   });
 
   test("font size cannot go above maximum (34px)", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     const btn = page.locator("#btn-font-up");
     while (!(await btn.isDisabled())) {
       await btn.click();
     }
-    const size = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    const size = await editorFontSize(page);
     expect(size).toBe(34);
     await expect(btn).toBeDisabled();
   });
 
   test("font size persists across reload", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-font-up").click();
     await page.locator("#btn-font-up").click();
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
-    const size = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    await waitForAppReady(page);
+    const size = await editorFontSize(page);
     expect(size).toBe(20);
   });
 
   test("font size value display updates", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await expect(page.locator("#font-size-value")).toHaveText("16px");
     await page.locator("#btn-font-up").click();
     await expect(page.locator("#font-size-value")).toHaveText("18px");
@@ -312,7 +350,7 @@ test.describe("Toolbar visibility", () => {
     await page.locator("#btn-toggle-desktop").click();
     await expect(page.locator("#toolbar")).not.toHaveClass(/hidden/);
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#toolbar")).not.toHaveClass(/hidden/);
   });
 
@@ -447,17 +485,17 @@ test.describe("Dialog layout", () => {
   test("about dialog is wider than settings dialog", async ({ page }) => {
     await page.goto("/");
 
-    await page.locator("#dialog-info").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-info");
     const aboutWidth = await page
       .locator("#dialog-info")
       .evaluate((el) => (el as HTMLElement).offsetWidth);
-    await page.locator("#dialog-info").evaluate((el) => (el as HTMLDialogElement).close());
+    await closeDialog(page, "dialog-info");
 
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     const settingsWidth = await page
       .locator("#dialog-settings")
       .evaluate((el) => (el as HTMLElement).offsetWidth);
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).close());
+    await closeDialog(page, "dialog-settings");
 
     expect(aboutWidth).toBeGreaterThan(settingsWidth);
   });
@@ -467,12 +505,12 @@ test.describe("Dialog layout", () => {
     await page.goto("/");
 
     for (const id of ["dialog-settings", "dialog-info"]) {
-      await page.locator(`#${id}`).evaluate((el) => (el as HTMLDialogElement).showModal());
+      await openDialog(page, id);
       await page.waitForTimeout(300);
       const box = await page.locator(`#${id}`).boundingBox();
       const rightGap = 480 - box!.x - box!.width;
       expect(box!.x).toBeCloseTo(rightGap, 0);
-      await page.locator(`#${id}`).evaluate((el) => (el as HTMLDialogElement).close());
+      await closeDialog(page, id);
       await page.waitForTimeout(200);
     }
   });
@@ -482,7 +520,7 @@ test.describe("Dialog layout", () => {
     await page.goto("/");
 
     for (const id of ["dialog-settings", "dialog-info"]) {
-      await page.locator(`#${id}`).evaluate((el) => (el as HTMLDialogElement).showModal());
+      await openDialog(page, id);
       await page.waitForTimeout(300);
       const box = await page.locator(`#${id}`).boundingBox();
       const leftGap = box!.x;
@@ -490,14 +528,14 @@ test.describe("Dialog layout", () => {
       expect(leftGap).toBeGreaterThanOrEqual(7);
       expect(rightGap).toBeGreaterThanOrEqual(7);
       expect(leftGap).toBeCloseTo(rightGap, 0);
-      await page.locator(`#${id}`).evaluate((el) => (el as HTMLDialogElement).close());
+      await closeDialog(page, id);
       await page.waitForTimeout(200);
     }
   });
 
   test("font selector buttons fill the full width", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.waitForTimeout(300);
 
     const groupWidth = await page
@@ -511,7 +549,7 @@ test.describe("Dialog layout", () => {
 
   test("weight buttons do not fill the full width", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.waitForTimeout(300);
 
     const weightSetting = page.locator(".setting").filter({ hasText: "weight" });
@@ -525,7 +563,7 @@ test.describe("Dialog layout", () => {
   test("sans-serif button text does not wrap", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 568 });
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.waitForTimeout(300);
 
     const btn = page.locator("#btn-font-sans");
@@ -708,32 +746,16 @@ test.describe("Cross-tab localStorage sync", () => {
   // so early dispatches get dropped (flaky tests otherwise).
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
   });
 
   test("theme syncs via storage event", async ({ page }) => {
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "plaintext:theme",
-          newValue: "dark",
-          storageArea: localStorage,
-        }),
-      );
-    });
+    await dispatchStorage(page, "plaintext:theme", "dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 
   test("font size syncs via storage event", async ({ page }) => {
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "plaintext:fontSize",
-          newValue: "20",
-          storageArea: localStorage,
-        }),
-      );
-    });
+    await dispatchStorage(page, "plaintext:fontSize", "20");
     await expect
       .poll(async () =>
         page.locator("#editor").evaluate((el) => (el as HTMLElement).style.fontSize),
@@ -742,28 +764,12 @@ test.describe("Cross-tab localStorage sync", () => {
   });
 
   test("toolbar visibility syncs via storage event", async ({ page }) => {
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "plaintext:toolbarIcons",
-          newValue: "visible",
-          storageArea: localStorage,
-        }),
-      );
-    });
+    await dispatchStorage(page, "plaintext:toolbarIcons", "visible");
     await expect(page.locator("#toolbar")).not.toHaveClass(/hidden/);
   });
 
   test("font weight syncs via storage event", async ({ page }) => {
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "plaintext:fontWeight",
-          newValue: "600",
-          storageArea: localStorage,
-        }),
-      );
-    });
+    await dispatchStorage(page, "plaintext:fontWeight", "600");
     await expect
       .poll(async () =>
         page.locator("#editor").evaluate((el) => (el as HTMLElement).style.fontWeight),
@@ -772,20 +778,8 @@ test.describe("Cross-tab localStorage sync", () => {
   });
 
   test("font italic syncs via storage event", async ({ page }) => {
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "plaintext:fontItalic",
-          newValue: "true",
-          storageArea: localStorage,
-        }),
-      );
-    });
-    await expect
-      .poll(async () =>
-        page.locator("#editor").evaluate((el) => (el as HTMLElement).style.fontStyle),
-      )
-      .toBe("italic");
+    await dispatchStorage(page, "plaintext:fontItalic", "true");
+    await expect.poll(() => editorFontStyle(page)).toBe("italic");
   });
 });
 
@@ -806,17 +800,15 @@ test.describe("Settings dialog", () => {
 
   test("settings dialog has correct title", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await expect(page.locator("#dialog-settings-title")).toHaveText("settings");
   });
 
   test("font weight light button sets weight to 200", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-weight-light").click();
-    const weight = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
+    const weight = await editorFontWeight(page);
     expect(weight).toBe(200);
     await expect(page.locator("#btn-weight-light")).toHaveAttribute("aria-checked", "true");
     await expect(page.locator("#btn-weight-regular")).toHaveAttribute("aria-checked", "false");
@@ -825,23 +817,19 @@ test.describe("Settings dialog", () => {
 
   test("font weight regular button sets weight to 300", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-weight-light").click();
     await page.locator("#btn-weight-regular").click();
-    const weight = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
+    const weight = await editorFontWeight(page);
     expect(weight).toBe(300);
     await expect(page.locator("#btn-weight-regular")).toHaveAttribute("aria-checked", "true");
   });
 
   test("font weight bold button sets weight to 600", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-weight-bold").click();
-    const weight = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
+    const weight = await editorFontWeight(page);
     expect(weight).toBe(600);
     await expect(page.locator("#btn-weight-bold")).toHaveAttribute("aria-checked", "true");
     await expect(page.locator("#btn-weight-regular")).toHaveAttribute("aria-checked", "false");
@@ -850,54 +838,47 @@ test.describe("Settings dialog", () => {
 
   test("font weight persists across reload", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-weight-bold").click();
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
-    const weight = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
+    await waitForAppReady(page);
+    const weight = await editorFontWeight(page);
     expect(weight).toBe(600);
   });
 
   test("italic toggle works", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     const btn = page.locator("#btn-italic");
     await expect(btn).toHaveText("off");
     await expect(btn).toHaveAttribute("aria-checked", "false");
     await btn.click();
     await expect(btn).toHaveText("on");
     await expect(btn).toHaveAttribute("aria-checked", "true");
-    const style = await page
-      .locator("#editor")
-      .evaluate((el) => (el as HTMLElement).style.fontStyle);
+    const style = await editorFontStyle(page);
     expect(style).toBe("italic");
   });
 
   test("italic persists across reload", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-italic").click();
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
-    const style = await page
-      .locator("#editor")
-      .evaluate((el) => (el as HTMLElement).style.fontStyle);
+    await waitForAppReady(page);
+    const style = await editorFontStyle(page);
     expect(style).toBe("italic");
   });
 
   test("reset button restores defaults", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-font-up").click();
     await page.locator("#btn-weight-bold").click();
     await page.locator("#btn-italic").click();
     await page.locator("#btn-reset").click();
-    const editor = page.locator("#editor");
-    const size = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
-    const weight = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
-    const style = await editor.evaluate((el) => (el as HTMLElement).style.fontStyle);
+    const size = await editorFontSize(page);
+    const weight = await editorFontWeight(page);
+    const style = await editorFontStyle(page);
     expect(size).toBe(16);
     expect(weight).toBe(300);
     expect(style).toBe("normal");
@@ -906,17 +887,16 @@ test.describe("Settings dialog", () => {
 
   test("reset persists across reload", async ({ page }) => {
     await page.goto("/");
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-font-up").click();
     await page.locator("#btn-weight-bold").click();
     await page.locator("#btn-italic").click();
     await page.locator("#btn-reset").click();
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
-    const editor = page.locator("#editor");
-    const size = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
-    const weight = await editor.evaluate((el) => parseInt((el as HTMLElement).style.fontWeight));
-    const style = await editor.evaluate((el) => (el as HTMLElement).style.fontStyle);
+    await waitForAppReady(page);
+    const size = await editorFontSize(page);
+    const weight = await editorFontWeight(page);
+    const style = await editorFontStyle(page);
     expect(size).toBe(16);
     expect(weight).toBe(300);
     expect(style).toBe("normal");
@@ -1016,7 +996,7 @@ test.describe("Combined interactions", () => {
     await waitForPersisted(page, "current", "before theme change");
     await page.locator("#btn-theme").click();
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#editor")).toHaveValue("before theme change");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
@@ -1025,16 +1005,14 @@ test.describe("Combined interactions", () => {
     await page.goto("/");
     await page.locator("#btn-toggle-desktop").click();
     await page.locator("#btn-theme").click();
-    await page.locator("#dialog-settings").evaluate((el) => (el as HTMLDialogElement).showModal());
+    await openDialog(page, "dialog-settings");
     await page.locator("#btn-font-up").click();
     await page.locator("#btn-font-up").click();
     await page.locator("#btn-font-up").click();
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    const size = await page
-      .locator("#editor")
-      .evaluate((el) => parseInt((el as HTMLElement).style.fontSize));
+    const size = await editorFontSize(page);
     expect(size).toBe(22);
   });
 
@@ -1046,7 +1024,7 @@ test.describe("Combined interactions", () => {
     await page.locator("#editor").dispatchEvent("input");
     await waitForPersisted(page, "current", "everything persists");
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#toolbar")).not.toHaveClass(/hidden/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(page.locator("#editor")).toHaveValue("everything persists");
@@ -1187,7 +1165,7 @@ test.describe("File upload", () => {
     await expect(page.locator("#editor")).toHaveValue("should persist");
     await waitForPersisted(page, "current", "should persist");
     await page.reload();
-    await page.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(page);
     await expect(page.locator("#editor")).toHaveValue("should persist");
   });
 
@@ -1241,23 +1219,18 @@ test.describe("File upload", () => {
   test("drag over editor shows visual feedback", async ({ page }) => {
     const editor = page.locator("#editor");
     const mainEl = page.locator("main");
-    await editor.evaluate((el) => {
-      const dt = new DataTransfer();
-      dt.items.add(new File(["test"], "test.txt", { type: "text/plain" }));
-      const event = new DragEvent("dragover", { dataTransfer: dt, bubbles: true });
-      el.dispatchEvent(event);
-    });
+    await dispatchDrag(editor, "dragover", [
+      { name: "test.txt", content: "test", type: "text/plain" },
+    ]);
     await expect(mainEl).toHaveClass(/dragover/);
   });
 
   test("drag leave removes visual feedback", async ({ page }) => {
     const editor = page.locator("#editor");
     const mainEl = page.locator("main");
-    await editor.evaluate((el) => {
-      const dt = new DataTransfer();
-      dt.items.add(new File(["test"], "test.txt", { type: "text/plain" }));
-      el.dispatchEvent(new DragEvent("dragover", { dataTransfer: dt, bubbles: true }));
-    });
+    await dispatchDrag(editor, "dragover", [
+      { name: "test.txt", content: "test", type: "text/plain" },
+    ]);
     await expect(mainEl).toHaveClass(/dragover/);
     await editor.evaluate((el) => {
       el.dispatchEvent(
@@ -1269,59 +1242,41 @@ test.describe("File upload", () => {
 
   test("dropping a text file inserts its content", async ({ page }) => {
     const editor = page.locator("#editor");
-    await editor.evaluate((el) => {
-      const dt = new DataTransfer();
-      dt.items.add(new File(["dropped content"], "drop.txt", { type: "text/plain" }));
-      el.dispatchEvent(
-        new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }),
-      );
-    });
+    await dispatchDrag(editor, "drop", [
+      { name: "drop.txt", content: "dropped content", type: "text/plain" },
+    ]);
     await expect(editor).toHaveValue("dropped content");
   });
 
   test("dropping removes dragover feedback", async ({ page }) => {
     const editor = page.locator("#editor");
     const mainEl = page.locator("main");
-    await editor.evaluate((el) => {
-      const dt = new DataTransfer();
-      dt.items.add(new File(["test"], "test.txt", { type: "text/plain" }));
-      el.dispatchEvent(new DragEvent("dragover", { dataTransfer: dt, bubbles: true }));
-    });
+    await dispatchDrag(editor, "dragover", [
+      { name: "test.txt", content: "test", type: "text/plain" },
+    ]);
     await expect(mainEl).toHaveClass(/dragover/);
-    await editor.evaluate((el) => {
-      const dt = new DataTransfer();
-      dt.items.add(new File(["test"], "test.txt", { type: "text/plain" }));
-      el.dispatchEvent(
-        new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }),
-      );
-    });
+    await dispatchDrag(editor, "drop", [{ name: "test.txt", content: "test", type: "text/plain" }]);
     await expect(mainEl).not.toHaveClass(/dragover/);
   });
 
   test("dropping a binary file shows error message", async ({ page }) => {
     const editor = page.locator("#editor");
-    await editor.evaluate((el) => {
-      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00]);
-      const file = new File([bytes], "image.png", { type: "image/png" });
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      el.dispatchEvent(
-        new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }),
-      );
-    });
+    await dispatchDrag(editor, "drop", [
+      {
+        name: "image.png",
+        content: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00]),
+        type: "image/png",
+      },
+    ]);
     await expect(editor).toHaveValue("image.png is not a text file");
   });
 
   test("dropping multiple files concatenates their content", async ({ page }) => {
     const editor = page.locator("#editor");
-    await editor.evaluate((el) => {
-      const dt = new DataTransfer();
-      dt.items.add(new File(["alpha"], "a.txt", { type: "text/plain" }));
-      dt.items.add(new File(["beta"], "b.txt", { type: "text/plain" }));
-      el.dispatchEvent(
-        new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }),
-      );
-    });
+    await dispatchDrag(editor, "drop", [
+      { name: "a.txt", content: "alpha", type: "text/plain" },
+      { name: "b.txt", content: "beta", type: "text/plain" },
+    ]);
     await expect(editor).toHaveValue("alpha\nbeta");
   });
 });

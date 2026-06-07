@@ -2,13 +2,13 @@ import {
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE,
   DEFAULT_FONT_WEIGHT,
-  FONT_FAMILY_WEIGHTS,
   STORAGE_KEYS,
   THEME_COLORS,
 } from "../constants";
 import {
   clampFontSize,
   clampFontWeight,
+  isWeightSupported,
   normalizeFontFamily,
   parseStoredFontItalic,
   parseStoredFontSize,
@@ -56,8 +56,12 @@ class PreferencesState {
   setFontFamily(family: FontFamily): void {
     this.fontFamily = family;
     saveStored(STORAGE_KEYS.fontFamily, family);
-    const supported = FONT_FAMILY_WEIGHTS[family] ?? FONT_FAMILY_WEIGHTS.mono;
-    if (!supported.includes(this.fontWeight)) {
+    this.#enforceWeightForFamily();
+  }
+
+  /** Reset the weight to the default when the current family doesn't support it. */
+  #enforceWeightForFamily(): void {
+    if (!isWeightSupported(this.fontFamily, this.fontWeight)) {
       this.fontWeight = DEFAULT_FONT_WEIGHT;
       saveStored(STORAGE_KEYS.fontWeight, String(DEFAULT_FONT_WEIGHT));
     }
@@ -105,11 +109,7 @@ class PreferencesState {
         break;
       case STORAGE_KEYS.fontFamily: {
         this.fontFamily = normalizeFontFamily(e.newValue);
-        const supported = FONT_FAMILY_WEIGHTS[this.fontFamily] ?? FONT_FAMILY_WEIGHTS.mono;
-        if (!supported.includes(this.fontWeight)) {
-          this.fontWeight = DEFAULT_FONT_WEIGHT;
-          saveStored(STORAGE_KEYS.fontWeight, String(DEFAULT_FONT_WEIGHT));
-        }
+        this.#enforceWeightForFamily();
         break;
       }
       case STORAGE_KEYS.fontSize: {

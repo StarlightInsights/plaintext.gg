@@ -8,7 +8,6 @@ export const MAX_FONT_SIZE = 34;
 export const DEFAULT_FONT_WEIGHT = 300;
 export const MIN_FONT_WEIGHT = 200;
 export const MAX_FONT_WEIGHT = 600;
-export const FONT_WEIGHT_STEP = 100;
 export const FONT_WEIGHTS = [200, 300, 600] as const;
 
 export const DEFAULT_FONT_FAMILY: FontFamily = "mono";

@@ -1,4 +1,10 @@
-import { DEFAULT_FONT_WEIGHT, FONT_WEIGHTS, MAX_FONT_SIZE, MIN_FONT_SIZE } from "../constants";
+import {
+  DEFAULT_FONT_WEIGHT,
+  FONT_FAMILY_WEIGHTS,
+  FONT_WEIGHTS,
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+} from "../constants";
 import type { FontFamily } from "../types";
 
 export function clampFontSize(n: number): number {
@@ -32,4 +38,8 @@ export function parseStoredFontItalic(v: string | null): boolean {
 export function normalizeFontFamily(v: string | null): FontFamily {
   if (v === "sans-serif" || v === "serif" || v === "dyslexic") return v;
   return "mono";
+}
+
+export function isWeightSupported(family: FontFamily, weight: number): boolean {
+  return (FONT_FAMILY_WEIGHTS[family] ?? FONT_FAMILY_WEIGHTS.mono).includes(weight);
 }

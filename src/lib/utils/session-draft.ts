@@ -1,7 +1,7 @@
 import { SESSION_KEYS } from "../constants";
 import { sessionDraftKey } from "./storage-keys";
-import { toVersion } from "./versions";
-import type { SessionDraft } from "../types";
+import { isVersionShape, toVersion } from "./versions";
+import type { SessionDraft, Version } from "../types";
 
 export function readDraft(slug: string): SessionDraft | null {
   try {
@@ -19,29 +19,19 @@ export function readDraft(slug: string): SessionDraft | null {
     if (!d || typeof d !== "object") return null;
     const obj = d as Record<string, unknown>;
     const v = obj.version as Record<string, unknown> | undefined;
-    if (
-      typeof obj.text !== "string" ||
-      !v ||
-      typeof v.updatedAt !== "number" ||
-      typeof v.sourceTabId !== "string" ||
-      typeof v.saveSequence !== "number"
-    ) {
+    if (typeof obj.text !== "string" || !v || !isVersionShape(v)) {
       return null;
     }
     return {
       text: obj.text,
-      version: toVersion(v as { updatedAt: number; sourceTabId: string; saveSequence: number }),
+      version: toVersion(v),
     };
   } catch {
     return null;
   }
 }
 
-export function writeDraft(
-  slug: string,
-  text: string,
-  version: { updatedAt: number; sourceTabId: string; saveSequence: number },
-): void {
+export function writeDraft(slug: string, text: string, version: Version): void {
   try {
     sessionStorage.setItem(sessionDraftKey(slug), JSON.stringify({ text, version }));
   } catch {

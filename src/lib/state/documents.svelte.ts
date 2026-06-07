@@ -2,7 +2,13 @@ import { PERSIST_DELAY_MS } from "../constants";
 import { deleteRecord, listRecords, loadRecord, saveRecord } from "../db/documents";
 import { clearDraft, readDraft, writeDraft } from "../utils/session-draft";
 import { syncChannelName } from "../utils/storage-keys";
-import { compareVersions, createRecord, isVersionNewer, toVersion } from "../utils/versions";
+import {
+  compareVersions,
+  createRecord,
+  isVersionNewer,
+  isVersionShape,
+  toVersion,
+} from "../utils/versions";
 import type { DocumentRecord, SortMode, SyncMessage, Version } from "../types";
 
 function generateTabId(): string {
@@ -23,13 +29,7 @@ function parseSyncMessage(value: unknown): SyncMessage | null {
   if (!value || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
   if (v.type !== "text-updated") return null;
-  if (
-    typeof v.updatedAt !== "number" ||
-    typeof v.sourceTabId !== "string" ||
-    typeof v.saveSequence !== "number"
-  ) {
-    return null;
-  }
+  if (!isVersionShape(v)) return null;
   return {
     type: "text-updated",
     updatedAt: v.updatedAt,

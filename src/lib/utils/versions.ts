@@ -13,12 +13,16 @@ export function isVersionNewer(candidate: Version | null, current: Version | nul
   return compareVersions(candidate, current) > 0;
 }
 
-export function toVersion(v: {
-  updatedAt: number;
-  sourceTabId: string;
-  saveSequence: number;
-}): Version {
+export function toVersion(v: Version): Version {
   return { updatedAt: v.updatedAt, sourceTabId: v.sourceTabId, saveSequence: v.saveSequence };
+}
+
+export function isVersionShape(v: Record<string, unknown>): v is Record<string, unknown> & Version {
+  return (
+    typeof v.updatedAt === "number" &&
+    typeof v.sourceTabId === "string" &&
+    typeof v.saveSequence === "number"
+  );
 }
 
 export function createRecord(text: string, version: Version, slug: string): DocumentRecord {

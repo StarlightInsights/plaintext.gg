@@ -1,9 +1,10 @@
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { waitForAppReady } from "./helpers";
 
 async function bootPage(context: BrowserContext, path = "/doc-sync"): Promise<Page> {
   const page = await context.newPage();
   await page.goto(path);
-  await page.waitForSelector("#app-shell:not(.loading)");
+  await waitForAppReady(page);
   return page;
 }
 
@@ -25,7 +26,7 @@ test.describe("Cross-tab BroadcastChannel text sync", () => {
     const pageA = await bootPage(context, "/doc-sync");
     await resetStorage(pageA);
     await pageA.reload();
-    await pageA.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(pageA);
 
     const pageB = await bootPage(context, "/doc-sync");
 
@@ -44,7 +45,7 @@ test.describe("Cross-tab BroadcastChannel text sync", () => {
     const pageA = await bootPage(context, "/doc-x");
     await resetStorage(pageA);
     await pageA.reload();
-    await pageA.waitForSelector("#app-shell:not(.loading)");
+    await waitForAppReady(pageA);
 
     const pageB = await bootPage(context, "/doc-y");
 

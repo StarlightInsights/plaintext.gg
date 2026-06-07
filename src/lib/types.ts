@@ -8,12 +8,9 @@ export interface Version {
   saveSequence: number;
 }
 
-export interface DocumentRecord {
+export interface DocumentRecord extends Version {
   id: string;
   text: string;
-  updatedAt: number;
-  sourceTabId: string;
-  saveSequence: number;
 }
 
 export interface SessionDraft {
@@ -21,11 +18,6 @@ export interface SessionDraft {
   version: Version;
 }
 
-export interface SyncMessage {
-  type: "text-updated";
-  updatedAt: number;
-  sourceTabId: string;
-  saveSequence: number;
-}
+export type SyncMessage = Version & { type: "text-updated" };
 
 export type SortMode = "alpha" | "recent";
