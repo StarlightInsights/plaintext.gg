@@ -15,7 +15,7 @@
     "check": "vp check && vp run typecheck && vp run test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.62.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
