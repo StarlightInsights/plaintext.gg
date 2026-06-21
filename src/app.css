@@ -205,44 +205,10 @@ html[data-theme="dark"] {
     opacity: 1;
   }
 }
-.tooltip-up[data-tooltip]::after {
-  top: auto;
-  bottom: calc(100% + 4px);
-}
 
-/* Native <dialog> fade. `@starting-style` + `allow-discrete` have no Tailwind
-   shortcut for `display` / `overlay` transitions — keep declarative here. */
-dialog {
-  opacity: 0;
-  transition:
-    opacity 100ms ease-in,
-    overlay 100ms ease-in allow-discrete,
-    display 100ms ease-in allow-discrete;
-}
-dialog[open] {
-  opacity: 1;
-  transition:
-    opacity 160ms ease-out,
-    overlay 160ms ease-out allow-discrete,
-    display 160ms ease-out allow-discrete;
-  @starting-style {
-    opacity: 0;
-  }
-}
-dialog::backdrop {
-  background-color: var(--colors-overlay);
-  opacity: 0;
-  transition:
-    opacity 80ms ease-in,
-    overlay 80ms ease-in allow-discrete,
-    display 80ms ease-in allow-discrete;
-}
-dialog[open]::backdrop {
-  opacity: 1;
-  @starting-style {
-    opacity: 0;
-  }
-}
+/* Dialogs now use Ark UI's portal-based Dialog (not the native <dialog>): the
+   backdrop overlay is a styled element and the open fade is the `dialog-fade-in`
+   keyframe applied in Dialog.svelte, so no element-level <dialog> rules remain. */
 
 /* Universal reduced-motion kill switch — can't scope to every element via utilities. */
 @media (prefers-reduced-motion: reduce) {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { css, cx } from 'styled-system/css';
+  import { RadioGroup } from '@ark-ui/svelte/radio-group';
   import Dialog from './Dialog.svelte';
   import { pillButton } from '../button-classes';
   import { goto } from '$app/navigation';
@@ -7,16 +8,11 @@
   import { getSlugFromPath } from '$lib/utils/slug';
   import { announcer } from '$lib/state/announce.svelte';
   import { documents } from '$lib/state/documents.svelte';
-  import type { DocumentRecord } from '$lib/types';
+  import { ui } from '$lib/state/ui.svelte';
+  import type { DocumentRecord, SortMode } from '$lib/types';
 
-  let dialog: Dialog | undefined = $state(undefined);
   let createInput: HTMLInputElement | undefined = $state(undefined);
   let createError = $state('');
-
-  export function show(): void {
-    documents.reloadList();
-    dialog?.show();
-  }
 
   // The root document (`/`) is always shown first, even when empty, so users
   // always have a way back to it from the picker.
@@ -73,7 +69,7 @@
       createInput.focus();
       return;
     }
-    dialog?.close();
+    ui.documentsOpen = false;
     await goto('/' + slug);
   }
 
@@ -85,7 +81,7 @@
 </script>
 
 <Dialog
-  bind:this={dialog}
+  bind:open={ui.documentsOpen}
   id="dialog-documents"
   title="documents"
   titleId="dialog-documents-title"
@@ -159,31 +155,24 @@
     >{createError}</p>
   </form>
 
-  <div
+  <RadioGroup.Root
+    value={documents.sortMode}
+    onValueChange={(e) => documents.setSortMode(e.value as SortMode)}
     class={cx(
       'documents-sort setting-control--group',
-      css({ display: 'flex', gap: '0', '& > button + button': { marginLeft: '-1px' } })
+      css({ display: 'flex', gap: '0', '& > * + *': { marginLeft: '-1px' } })
     )}
-    role="radiogroup"
     aria-label="Sort order"
   >
-    <button
-      type="button"
-      class={sortToggle}
-      id="btn-sort-alpha"
-      role="radio"
-      aria-checked={documents.sortMode === 'alpha'}
-      onclick={() => documents.setSortMode('alpha')}
-    >a-z</button>
-    <button
-      type="button"
-      class={sortToggle}
-      id="btn-sort-recent"
-      role="radio"
-      aria-checked={documents.sortMode === 'recent'}
-      onclick={() => documents.setSortMode('recent')}
-    >recent</button>
-  </div>
+    <RadioGroup.Item value="alpha" id="btn-sort-alpha" class={sortToggle}>
+      <RadioGroup.ItemText>a-z</RadioGroup.ItemText>
+      <RadioGroup.ItemHiddenInput />
+    </RadioGroup.Item>
+    <RadioGroup.Item value="recent" id="btn-sort-recent" class={sortToggle}>
+      <RadioGroup.ItemText>recent</RadioGroup.ItemText>
+      <RadioGroup.ItemHiddenInput />
+    </RadioGroup.Item>
+  </RadioGroup.Root>
 
   <ul
     class={cx('documents-list', css({ listStyle: 'none', m: '0', p: '0', maxH: '60vh', overflowY: 'auto' }))}
@@ -217,7 +206,7 @@
             record.id === documents.currentSlug ? cx('active', css({ color: 'fg' })) : css({ color: 'muted' }),
             i > 0 && css({ borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: 'line' }),
           )}
-          onclick={() => dialog?.close()}
+          onclick={() => (ui.documentsOpen = false)}
         >{formatLink(record.id)}</a>
       </li>
     {/each}

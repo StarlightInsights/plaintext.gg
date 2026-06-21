@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { css, cx } from 'styled-system/css';
+  import { Dialog } from '@ark-ui/svelte/dialog';
+  import { Portal } from '@ark-ui/svelte/portal';
   import Icon from '../Icon.svelte';
 
   type Props = {
@@ -8,122 +10,130 @@
     title: string;
     titleId: string;
     descId?: string;
+    /** Controlled open state — Ark flips this on Esc, backdrop click, or close. */
+    open: boolean;
     /** Extra width for dialogs that want more room (e.g. about, documents). */
     wide?: boolean;
     children: Snippet;
   };
 
-  let { id, title, titleId, descId, wide = false, children }: Props = $props();
+  let { id, title, titleId, descId, open = $bindable(false), wide = false, children }: Props =
+    $props();
 
-  let dialogEl: HTMLDialogElement | undefined = $state(undefined);
-  let triggerEl: HTMLElement | null = null;
+  // Dimmed overlay — replaces the native `dialog::backdrop` (overlay token).
+  const backdrop = css({
+    position: 'fixed',
+    inset: '0',
+    zIndex: 40,
+    bg: 'overlay',
+  });
 
-  export function show(): void {
-    if (!dialogEl) return;
-    triggerEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogEl.showModal();
-    const closeBtn = dialogEl.querySelector('.dialog-close');
-    if (closeBtn instanceof HTMLElement) closeBtn.focus();
-  }
+  // Full-viewport flexbox that centers the content (Ark gives the positioner no
+  // layout of its own). Equal margins fall out of `margin: auto` + max-width.
+  const positioner = css({
+    position: 'fixed',
+    inset: '0',
+    zIndex: 50,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  });
 
-  export function close(): void {
-    dialogEl?.close();
-  }
+  const content = css({
+    margin: 'auto',
+    maxW: 'calc(100% - 16px)',
+    maxH: 'calc(100dvh - 16px)',
+    overflowY: 'auto',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'panelLine',
+    bg: 'panel',
+    p: '0',
+    color: 'fg',
+    outline: 'none',
+    transitionProperty: 'background-color, color, border-color',
+    transitionDuration: '180ms',
+    transitionTimingFunction: 'ease-out',
+    // Ark keeps the content mounted but `hidden` while closed, so reveal it with
+    // an entrance animation rather than an opacity transition.
+    '&[data-state=open]': { animation: 'dialog-fade-in 160ms ease-out' },
+  });
+  const narrowW = css({ w: '26rem' });
+  const wideW = css({ w: '28rem' });
 
-  export function isOpen(): boolean {
-    return dialogEl?.open ?? false;
-  }
-
-  function handleBackdropClick(e: MouseEvent) {
-    if (e.target === dialogEl) dialogEl.close();
-  }
-
-  function handleClose() {
-    if (triggerEl) {
-      triggerEl.focus();
-      triggerEl = null;
-    } else {
-      document.getElementById('editor')?.focus();
-    }
-  }
+  const inner = css({ display: 'grid', gap: '5', p: '4' });
+  const header = css({
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '4',
+  });
+  const titleCss = css({ m: '0', fontFamily: 'main', fontSize: 'md', fontWeight: 'bold' });
+  const closeCss = css({
+    appearance: 'none',
+    bg: 'transparent',
+    borderWidth: '0',
+    p: '0',
+    color: 'secondary',
+    cursor: 'pointer',
+    transitionProperty: 'color',
+    transitionDuration: '180ms',
+    transitionTimingFunction: 'ease-out',
+    _hoverable: { _hover: { color: 'fg' } },
+    _focusVisible: {
+      color: 'fg',
+      outlineWidth: '2px',
+      outlineStyle: 'solid',
+      outlineColor: 'muted',
+      outlineOffset: '2px',
+      borderRadius: '2px',
+    },
+  });
+  const bodyCss = css({
+    display: 'grid',
+    gap: '4',
+    lineHeight: '1.65',
+    color: 'fg',
+    fontFamily: 'dialog',
+  });
 </script>
 
-<dialog
-  {id}
-  class={cx(
-    'dialog',
-    css({
-      margin: 'auto',
-      maxW: 'calc(100% - 16px)',
-      maxH: 'calc(100dvh - 16px)',
-      overflowY: 'auto',
-      borderWidth: '1px',
-      borderStyle: 'solid',
-      borderColor: 'panelLine',
-      bg: 'panel',
-      p: '0',
-      color: 'fg',
-      outline: 'none',
-      transitionProperty: 'background-color, color, border-color',
-      transitionDuration: '180ms',
-      transitionTimingFunction: 'ease-out',
-    }),
-    wide ? css({ w: '28rem' }) : css({ w: '26rem' }),
-  )}
-  aria-labelledby={titleId}
-  aria-describedby={descId}
-  bind:this={dialogEl}
-  onclick={handleBackdropClick}
-  onclose={handleClose}
+<Dialog.Root
+  bind:open
+  ids={descId ? { content: id, title: titleId, description: descId } : { content: id, title: titleId }}
 >
-  <div class={cx('dialog-inner', css({ display: 'grid', gap: '5', p: '4' }))}>
-    <div
-      class={cx(
-        'dialog-header',
-        css({ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4' })
-      )}
-    >
-      <h2
-        class={cx('dialog-title', css({ m: '0', fontFamily: 'main', fontSize: 'base', fontWeight: 'bold' }))}
-        id={titleId}
-      >{title}</h2>
-      <button
-        type="button"
-        class={cx(
-          'dialog-close',
-          css({
-            appearance: 'none',
-            bg: 'transparent',
-            borderWidth: '0',
-            p: '0',
-            color: 'secondary',
-            cursor: 'pointer',
-            transitionProperty: 'color',
-            transitionDuration: '180ms',
-            transitionTimingFunction: 'ease-out',
-            _hoverable: { _hover: { color: 'fg' } },
-            _focusVisible: {
-              color: 'fg',
-              outlineWidth: '2px',
-              outlineStyle: 'solid',
-              outlineColor: 'muted',
-              outlineOffset: '2px',
-              borderRadius: '2px',
-            },
-          })
-        )}
-        aria-label="Close dialog"
-        data-tooltip="close"
-        onclick={() => dialogEl?.close()}
-      >
-        <Icon name="close" size="close" />
-      </button>
-    </div>
-    <div
-      class={cx('dialog-body', css({ display: 'grid', gap: '4', lineHeight: '1.65', color: 'fg', fontFamily: 'dialog' }))}
-      id={descId}
-    >
-      {@render children()}
-    </div>
-  </div>
-</dialog>
+  <Portal>
+    <Dialog.Backdrop class={backdrop} />
+    <Dialog.Positioner class={positioner}>
+      <Dialog.Content class={cx('dialog', content, wide ? wideW : narrowW)}>
+        <div class={inner}>
+          <div class={cx('dialog-header', header)}>
+            <Dialog.Title class={cx('dialog-title', titleCss)}>{title}</Dialog.Title>
+            <Dialog.CloseTrigger
+              class={cx('dialog-close', closeCss)}
+              aria-label="Close dialog"
+              data-tooltip="close"
+            >
+              <Icon name="close" size="close" />
+            </Dialog.CloseTrigger>
+          </div>
+          {#if descId}
+            <Dialog.Description>
+              {#snippet asChild(props)}
+                <!-- Render a <div> (not Ark's default <p>) so block children like
+                     <p>/<ul>/<form> nest validly while keeping aria-describedby. -->
+                <div {...props({ class: cx('dialog-body', bodyCss) })}>
+                  {@render children()}
+                </div>
+              {/snippet}
+            </Dialog.Description>
+          {:else}
+            <div class={cx('dialog-body', bodyCss)}>
+              {@render children()}
+            </div>
+          {/if}
+        </div>
+      </Dialog.Content>
+    </Dialog.Positioner>
+  </Portal>
+</Dialog.Root>

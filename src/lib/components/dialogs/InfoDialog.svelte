@@ -2,12 +2,7 @@
   import { css } from 'styled-system/css';
   import Dialog from './Dialog.svelte';
   import { dialogLink } from '../button-classes';
-
-  let dialog: Dialog | undefined = $state(undefined);
-
-  export function show(): void {
-    dialog?.show();
-  }
+  import { ui } from '$lib/state/ui.svelte';
 
   const p = css({ m: '0' });
   const strong = css({ fontFamily: 'main', fontWeight: 'semibold' });
@@ -15,7 +10,7 @@
 </script>
 
 <Dialog
-  bind:this={dialog}
+  bind:open={ui.infoOpen}
   id="dialog-info"
   title="about"
   titleId="dialog-info-title"

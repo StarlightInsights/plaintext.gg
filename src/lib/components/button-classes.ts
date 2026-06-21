@@ -65,7 +65,11 @@ export const pillButton = css({
     outlineColor: "muted",
     outlineOffset: "-1px",
   },
-  "&[aria-checked=true]": { bg: "line", color: "fg" },
+  // Ark RadioGroup/Switch mark the selected control with data-state="checked"
+  // (on a <label>, so :checked/aria-checked don't apply); the plain `reset`
+  // button keeps no selected state. Disabled radio items expose data-disabled.
+  "&[data-state=checked]": { bg: "line", color: "fg" },
+  "&[data-disabled]": { opacity: "0.3", cursor: "not-allowed" },
   _disabled: { opacity: "0.3", cursor: "not-allowed" },
 });
 

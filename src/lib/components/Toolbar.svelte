@@ -119,7 +119,7 @@
       transitionProperty: 'background-color, color, border-color',
       transitionDuration: '180ms',
       transitionTimingFunction: 'ease-out',
-      smDown: { px: '3', justifyContent: 'start', fontSize: 'base', gap: '2px' },
+      smDown: { px: '3', justifyContent: 'start', fontSize: 'md', gap: '2px' },
       sm: { paddingRight: '52px' },
     }),
     !preferences.toolbarVisible && 'hidden',

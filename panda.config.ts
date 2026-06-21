@@ -59,6 +59,13 @@ export default defineConfig({
           from: { opacity: "0", transform: "translateY(-10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // Ark Dialog sets `hidden` on the content while closed, so an opacity
+        // *transition* can't run on reveal — an entrance animation does. Mirrors
+        // the old native-<dialog> @starting-style fade-in.
+        "dialog-fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
       },
     },
   },

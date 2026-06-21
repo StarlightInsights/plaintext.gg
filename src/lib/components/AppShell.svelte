@@ -13,6 +13,7 @@
   import { TOOLBAR_SLIDE_IN_MS } from '$lib/constants';
   import { documents } from '$lib/state/documents.svelte';
   import { preferences } from '$lib/state/preferences.svelte';
+  import { ui } from '$lib/state/ui.svelte';
   import { saveCurrentDocument } from '$lib/utils/save';
 
   let loading = $state(true);
@@ -20,9 +21,6 @@
   let toolbarHeight = $state(0);
   let editorEl: HTMLTextAreaElement | undefined = $state(undefined);
 
-  let infoDialog: InfoDialog | undefined = $state(undefined);
-  let settingsDialog: SettingsDialog | undefined = $state(undefined);
-  let documentsDialog: DocumentsDialog | undefined = $state(undefined);
   let editor: Editor | undefined = $state(undefined);
 
   onMount(() => {
@@ -84,7 +82,7 @@
     let didHandle = false;
 
     if (params.get('action') === 'new') {
-      documentsDialog?.show();
+      ui.openDocuments();
       didHandle = true;
     }
 
@@ -189,16 +187,16 @@
   <Toolbar
     bind:clientHeight={toolbarHeight}
     {slideIn}
-    onInfoClick={() => infoDialog?.show()}
-    onDocumentsClick={() => documentsDialog?.show()}
-    onSettingsClick={() => settingsDialog?.show()}
+    onInfoClick={() => ui.openInfo()}
+    onDocumentsClick={() => ui.openDocuments()}
+    onSettingsClick={() => ui.openSettings()}
     onFilesSelected={handleFilesSelected}
   />
   <DesktopToolbarToggle />
   <MobileToolbarToggle />
   <h1 class={css({ srOnly: true })}>plaintext.gg editor</h1>
   <Editor bind:this={editor} bind:editorEl {toolbarHeight} {enableMotion} />
-  <InfoDialog bind:this={infoDialog} />
-  <SettingsDialog bind:this={settingsDialog} />
-  <DocumentsDialog bind:this={documentsDialog} />
+  <InfoDialog />
+  <SettingsDialog />
+  <DocumentsDialog />
 </div>

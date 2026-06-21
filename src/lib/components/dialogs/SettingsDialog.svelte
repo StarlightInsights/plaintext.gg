@@ -1,18 +1,16 @@
 <script lang="ts">
   import { css, cx } from 'styled-system/css';
+  import { RadioGroup } from '@ark-ui/svelte/radio-group';
+  import { Switch } from '@ark-ui/svelte/switch';
+  import { NumberInput } from '@ark-ui/svelte/number-input';
   import Dialog from './Dialog.svelte';
   import Icon from '../Icon.svelte';
   import { pillButton, stepButton } from '../button-classes';
   import { FONT_STEP, MAX_FONT_SIZE, MIN_FONT_SIZE } from '$lib/constants';
   import { isWeightSupported } from '$lib/utils/fonts';
   import { preferences } from '$lib/state/preferences.svelte';
+  import { ui } from '$lib/state/ui.svelte';
   import type { FontFamily } from '$lib/types';
-
-  let dialog: Dialog | undefined = $state(undefined);
-
-  export function show(): void {
-    dialog?.show();
-  }
 
   const fontOptions: { id: string; key: FontFamily; label: string; title?: string }[] = [
     { id: 'btn-font-mono', key: 'mono', label: 'mono' },
@@ -37,123 +35,118 @@
     gap: '4',
   });
   // Segmented control: zero gap with a 1px negative margin so borders overlap.
+  // Ark radio items render as <label>, so target any adjacent children.
   const controlGroup = css({
     display: 'flex',
     alignItems: 'center',
     gap: '0',
-    '& > button + button': { marginLeft: '-1px' },
+    '& > * + *': { marginLeft: '-1px' },
   });
   const settingControl = css({ display: 'flex', alignItems: 'center', gap: '2' });
+  const valueLabel = cx(
+    'setting-value',
+    css({ minW: '4ch', textAlign: 'center', fontVariantNumeric: 'tabular-nums' })
+  );
+  // The NumberInput needs an input to drive its machine, but this is a bounded
+  // stepper with no free typing — keep it out of the layout and tab order.
+  const hiddenInput = css({ srOnly: true });
 </script>
 
-<Dialog
-  bind:this={dialog}
-  id="dialog-settings"
-  title="settings"
-  titleId="dialog-settings-title"
->
+<Dialog bind:open={ui.settingsOpen} id="dialog-settings" title="settings" titleId="dialog-settings-title">
   <div class={cx('setting', settingRow)}>
-    <div
+    <RadioGroup.Root
+      value={preferences.fontFamily}
+      onValueChange={(e) => preferences.setFontFamily(e.value as FontFamily)}
       class={cx('setting-control setting-control--group', controlGroup, css({ flex: '1' }))}
-      role="radiogroup"
       aria-label="Font family"
     >
       {#each fontOptions as opt (opt.id)}
-        <button
-          type="button"
-          class={cx(toggleClass, css({ flex: '1' }))}
+        <RadioGroup.Item
+          value={opt.key}
           id={opt.id}
-          role="radio"
-          aria-checked={preferences.fontFamily === opt.key}
+          class={cx(toggleClass, css({ flex: '1' }))}
           data-font={opt.key}
           title={opt.title}
-          onclick={() => preferences.setFontFamily(opt.key)}
         >
-          {opt.label}
-        </button>
+          <RadioGroup.ItemText>{opt.label}</RadioGroup.ItemText>
+          <RadioGroup.ItemHiddenInput />
+        </RadioGroup.Item>
       {/each}
-    </div>
+    </RadioGroup.Root>
   </div>
 
   <div class={cx('setting', settingRow)}>
     <span class="setting-label">font size</span>
-    <div class={cx('setting-control', settingControl)}>
-      <button
-        type="button"
+    <NumberInput.Root
+      value={String(preferences.fontSize)}
+      min={MIN_FONT_SIZE}
+      max={MAX_FONT_SIZE}
+      step={FONT_STEP}
+      onValueChange={(e) => preferences.setFontSize(e.valueAsNumber)}
+      class={cx('setting-control', settingControl)}
+      aria-label="Font size"
+    >
+      <NumberInput.DecrementTrigger
+        id="btn-font-down"
         class={stepClass}
         aria-label="Decrease font size"
         data-tooltip="smaller"
-        id="btn-font-down"
-        disabled={preferences.fontSize <= MIN_FONT_SIZE}
-        onclick={() => preferences.setFontSize(preferences.fontSize - FONT_STEP)}
       >
         <Icon name="minus" size="small" />
-      </button>
-      <span
-        class={cx('setting-value', css({ minW: '4ch', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }))}
-        id="font-size-value"
-      >{preferences.fontSize}px</span>
-      <button
-        type="button"
+      </NumberInput.DecrementTrigger>
+      <span class={valueLabel} id="font-size-value">{preferences.fontSize}px</span>
+      <NumberInput.IncrementTrigger
+        id="btn-font-up"
         class={stepClass}
         aria-label="Increase font size"
         data-tooltip="larger"
-        id="btn-font-up"
-        disabled={preferences.fontSize >= MAX_FONT_SIZE}
-        onclick={() => preferences.setFontSize(preferences.fontSize + FONT_STEP)}
       >
         <Icon name="plus" size="small" />
-      </button>
-    </div>
+      </NumberInput.IncrementTrigger>
+      <NumberInput.Input class={hiddenInput} tabindex={-1} aria-hidden="true" />
+    </NumberInput.Root>
   </div>
 
   <div class={cx('setting', settingRow)}>
     <span class="setting-label">weight</span>
-    <div
+    <RadioGroup.Root
+      value={String(preferences.fontWeight)}
+      onValueChange={(e) => preferences.setFontWeight(Number(e.value))}
       class={cx('setting-control setting-control--group', controlGroup)}
-      role="radiogroup"
       aria-label="Font weight"
     >
       {#each weightOptions as opt (opt.id)}
-        <button
-          type="button"
-          class={toggleClass}
+        <RadioGroup.Item
+          value={String(opt.weight)}
           id={opt.id}
-          role="radio"
-          aria-checked={preferences.fontWeight === opt.weight}
+          class={toggleClass}
           data-weight={opt.weight}
           disabled={!isWeightSupported(preferences.fontFamily, opt.weight)}
-          onclick={() => preferences.setFontWeight(opt.weight)}
         >
-          {opt.label}
-        </button>
+          <RadioGroup.ItemText>{opt.label}</RadioGroup.ItemText>
+          <RadioGroup.ItemHiddenInput />
+        </RadioGroup.Item>
       {/each}
-    </div>
+    </RadioGroup.Root>
   </div>
 
   <div class={cx('setting', settingRow)}>
     <span class="setting-label">italic</span>
     <div class={cx('setting-control', settingControl)}>
-      <button
-        type="button"
+      <Switch.Root
+        checked={preferences.fontItalic}
+        onCheckedChange={() => preferences.toggleItalic()}
+        ids={{ root: 'btn-italic' }}
         class={toggleClass}
-        id="btn-italic"
-        role="switch"
-        aria-checked={preferences.fontItalic}
-        onclick={() => preferences.toggleItalic()}
       >
         {preferences.fontItalic ? 'on' : 'off'}
-      </button>
+        <Switch.HiddenInput />
+      </Switch.Root>
     </div>
   </div>
 
   <div class={cx('setting setting-reset', css({ display: 'flex', justifyContent: 'flex-end', gap: '4', marginTop: '1' }))}>
-    <button
-      type="button"
-      class={toggleClass}
-      id="btn-reset"
-      onclick={() => preferences.resetFonts()}
-    >
+    <button type="button" class={toggleClass} id="btn-reset" onclick={() => preferences.resetFonts()}>
       reset
     </button>
   </div>
