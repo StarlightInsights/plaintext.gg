@@ -1,29 +1,42 @@
 <script lang="ts">
+  import { css, cx } from 'styled-system/css';
   import Icon from './Icon.svelte';
+  import Tooltip from './Tooltip.svelte';
   import { iconButton } from './button-classes';
   import { preferences } from '$lib/state/preferences.svelte';
 </script>
 
 <div
-  class={[
-    'toggle-mobile absolute top-[max(8px,env(safe-area-inset-top))] right-[max(12px,env(safe-area-inset-right))] z-30 sm:hidden',
+  class={cx(
+    'toggle-mobile',
+    css({
+      position: 'absolute',
+      top: 'max(8px, env(safe-area-inset-top))',
+      right: 'max(12px, env(safe-area-inset-right))',
+      zIndex: 30,
+      sm: { display: 'none' },
+    }),
     preferences.toolbarVisible && 'hidden',
-  ]}
+  )}
   id="toggle-mobile"
 >
-  <button
-    type="button"
+  <Tooltip
+    text="show"
+    placement="top"
     id="btn-toggle-mobile"
     aria-pressed="true"
     aria-label="Show navigation icons and editor controls"
-    data-tooltip="show"
-    class={[
+    class={cx(
       iconButton,
-      'btn-float tooltip-up',
-      'opacity-60 hover:opacity-100 focus-visible:opacity-100',
-    ]}
+      'btn-float',
+      css({
+        opacity: 0.6,
+        _hoverable: { _hover: { opacity: 1 } },
+        _focusVisible: { opacity: 1 },
+      })
+    )}
     onclick={() => preferences.toggleToolbar()}
   >
     <Icon name="eye-closed" />
-  </button>
+  </Tooltip>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { css, cx } from 'styled-system/css';
   import { ICON_PATHS, type IconName } from './icons';
 
   type Props = {
@@ -11,13 +12,17 @@
   let { name, id, size = 'default', hidden = false }: Props = $props();
 
   const sizeClass = $derived(
-    size === 'small' ? 'w-4 h-4' : size === 'close' ? 'w-[18px] h-[18px]' : 'w-5 h-5'
+    size === 'small'
+      ? css({ w: '4', h: '4' })
+      : size === 'close'
+        ? css({ w: '18px', h: '18px' })
+        : css({ w: '5', h: '5' })
   );
 </script>
 
 <svg
   {id}
-  class={['icon shrink-0 fill-current pointer-events-none', sizeClass]}
+  class={cx('icon', css({ flexShrink: 0, fill: 'currentColor', pointerEvents: 'none' }), sizeClass)}
   aria-hidden="true"
   xmlns="http://www.w3.org/2000/svg"
   viewBox="0 0 256 256"

@@ -6,6 +6,7 @@ Thumbs.db
 node_modules/
 .svelte-kit/
 build/
+styled-system/
 
 # Env files
 .env

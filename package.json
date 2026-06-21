@@ -5,25 +5,30 @@
   "scripts": {
     "preinstall": "node -e \"if(!process.env.npm_execpath?.includes('pnpm')){console.error('Use pnpm, not npm.');process.exit(1)}\"",
     "postinstall": "playwright install chromium",
-    "dev": "vp dev",
-    "build": "vp build",
+    "prepare": "svelte-kit sync && panda codegen",
+    "panda:gen": "panda codegen && panda cssgen",
+    "panda:watch": "panda --watch",
+    "dev": "panda codegen && panda cssgen && vp dev",
+    "build": "vp exec svelte-kit sync && panda codegen && panda cssgen && vp build",
     "preview": "vp preview --port 3999",
     "test": "vp run test:unit && vp run test:e2e",
     "test:unit": "vp test run",
     "test:e2e": "vp exec playwright test",
-    "typecheck": "vp exec svelte-kit sync && vp exec svelte-check --tsconfig ./tsconfig.json",
+    "typecheck": "vp exec svelte-kit sync && vp exec panda codegen && vp exec svelte-check --tsconfig ./tsconfig.json",
     "check": "vp check && vp run typecheck && vp run test"
   },
+  "dependencies": {
+    "@ark-ui/svelte": "^5.22.1"
+  },
   "devDependencies": {
+    "@pandacss/dev": "^1.11.3",
     "@playwright/test": "^1.61.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.66.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
-    "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^26.0.0",
     "svelte": "^5.56.3",
     "svelte-check": "^4.6.0",
-    "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
     "vite": "catalog:",
     "vite-plus": "catalog:"

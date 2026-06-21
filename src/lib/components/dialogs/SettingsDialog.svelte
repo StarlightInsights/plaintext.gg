@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { css, cx } from 'styled-system/css';
   import Dialog from './Dialog.svelte';
   import Icon from '../Icon.svelte';
   import { pillButton, stepButton } from '../button-classes';
@@ -28,6 +29,21 @@
 
   const toggleClass = `setting-toggle ${pillButton}`;
   const stepClass = `btn setting-step ${stepButton}`;
+
+  const settingRow = css({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '4',
+  });
+  // Segmented control: zero gap with a 1px negative margin so borders overlap.
+  const controlGroup = css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0',
+    '& > button + button': { marginLeft: '-1px' },
+  });
+  const settingControl = css({ display: 'flex', alignItems: 'center', gap: '2' });
 </script>
 
 <Dialog
@@ -36,16 +52,16 @@
   title="settings"
   titleId="dialog-settings-title"
 >
-  <div class="setting flex items-center justify-between gap-4">
+  <div class={cx('setting', settingRow)}>
     <div
-      class="setting-control setting-control--group flex items-center gap-0 flex-1 [&>button+button]:-ml-px"
+      class={cx('setting-control setting-control--group', controlGroup, css({ flex: '1' }))}
       role="radiogroup"
       aria-label="Font family"
     >
       {#each fontOptions as opt (opt.id)}
         <button
           type="button"
-          class={[toggleClass, 'flex-1']}
+          class={cx(toggleClass, css({ flex: '1' }))}
           id={opt.id}
           role="radio"
           aria-checked={preferences.fontFamily === opt.key}
@@ -59,9 +75,9 @@
     </div>
   </div>
 
-  <div class="setting flex items-center justify-between gap-4">
+  <div class={cx('setting', settingRow)}>
     <span class="setting-label">font size</span>
-    <div class="setting-control flex items-center gap-2">
+    <div class={cx('setting-control', settingControl)}>
       <button
         type="button"
         class={stepClass}
@@ -73,7 +89,10 @@
       >
         <Icon name="minus" size="small" />
       </button>
-      <span class="setting-value min-w-[4ch] text-center tabular-nums" id="font-size-value">{preferences.fontSize}px</span>
+      <span
+        class={cx('setting-value', css({ minW: '4ch', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }))}
+        id="font-size-value"
+      >{preferences.fontSize}px</span>
       <button
         type="button"
         class={stepClass}
@@ -88,10 +107,10 @@
     </div>
   </div>
 
-  <div class="setting flex items-center justify-between gap-4">
+  <div class={cx('setting', settingRow)}>
     <span class="setting-label">weight</span>
     <div
-      class="setting-control setting-control--group flex items-center gap-0 [&>button+button]:-ml-px"
+      class={cx('setting-control setting-control--group', controlGroup)}
       role="radiogroup"
       aria-label="Font weight"
     >
@@ -112,9 +131,9 @@
     </div>
   </div>
 
-  <div class="setting flex items-center justify-between gap-4">
+  <div class={cx('setting', settingRow)}>
     <span class="setting-label">italic</span>
-    <div class="setting-control flex items-center gap-2">
+    <div class={cx('setting-control', settingControl)}>
       <button
         type="button"
         class={toggleClass}
@@ -128,7 +147,7 @@
     </div>
   </div>
 
-  <div class="setting setting-reset flex justify-end gap-4 mt-1">
+  <div class={cx('setting setting-reset', css({ display: 'flex', justifyContent: 'flex-end', gap: '4', marginTop: '1' }))}>
     <button
       type="button"
       class={toggleClass}

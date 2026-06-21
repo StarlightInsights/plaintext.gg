@@ -12,6 +12,13 @@ const config = {
       precompress: false,
       strict: false,
     }),
+    // Panda's generated output. Aliased here (not in tsconfig paths, which would
+    // clobber SvelteKit's generated $lib/$app paths) so both Vite and
+    // svelte-check resolve `styled-system/*` imports.
+    alias: {
+      "styled-system": "./styled-system",
+      "styled-system/*": "./styled-system/*",
+    },
     csp: {
       mode: "hash",
       directives: {

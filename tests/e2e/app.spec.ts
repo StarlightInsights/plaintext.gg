@@ -1360,21 +1360,35 @@ test.describe("Touch device button hover", () => {
     await expect(page.locator("#toolbar")).not.toHaveClass(/hidden/);
   });
 
-  // Tailwind v4's `hover:` variant ships pre-wrapped in @media (hover: hover),
-  // so scanning the stylesheet for a specific `.btn:hover` selector no longer
-  // makes sense. Behavioral coverage comes from the "touch-only" test below.
+  // Hover styles must only apply on hover-capable pointers, so a touch tap never
+  // leaves a sticky hover state. Panda emits `:hover` rules (via the `_hoverable`
+  // condition) nested inside `@media (hover: hover)`; assert none escape it.
+  // Behavioral coverage comes from the "touch-only" test below.
 
-  test("any hover:* utility rule is inside @media (hover: hover)", async ({ page }) => {
+  test("every :hover rule is inside @media (hover: hover)", async ({ page }) => {
     const anyUnguarded = await page.evaluate(() => {
+      // Walk rules recursively, tracking whether we're inside a hover media query.
+      const walk = (rules: CSSRuleList, inHoverMedia: boolean): boolean => {
+        for (const rule of rules) {
+          if (rule instanceof CSSMediaRule) {
+            const isHoverMedia = inHoverMedia || /hover\s*:\s*hover/.test(rule.conditionText);
+            if (walk(rule.cssRules, isHoverMedia)) return true;
+          } else if (rule instanceof CSSGroupingRule) {
+            // @layer, @supports, etc. — preserve the surrounding media context.
+            if (walk(rule.cssRules, inHoverMedia)) return true;
+          } else if (
+            rule instanceof CSSStyleRule &&
+            rule.selectorText?.includes(":hover") &&
+            !inHoverMedia
+          ) {
+            return true; // a :hover rule outside @media (hover: hover) is a regression
+          }
+        }
+        return false;
+      };
       for (const sheet of document.styleSheets) {
         try {
-          for (const rule of sheet.cssRules) {
-            if (rule instanceof CSSStyleRule && rule.selectorText?.includes("\\:hover")) {
-              // A compiled Tailwind hover utility living outside a media query
-              // is a regression — fail.
-              return true;
-            }
-          }
+          if (walk(sheet.cssRules, false)) return true;
         } catch {
           /* cross-origin stylesheets throw; ignore */
         }

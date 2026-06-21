@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { css, cx } from 'styled-system/css';
   import DocumentTitle from './DocumentTitle.svelte';
   import Icon from './Icon.svelte';
+  import Tooltip from './Tooltip.svelte';
   import { iconButton } from './button-classes';
   import { COPY_FEEDBACK_MS } from '$lib/constants';
   import { announcer } from '$lib/state/announce.svelte';
@@ -91,78 +93,88 @@
 
 <header
   id="toolbar"
-  class={[
+  class={cx(
     'toolbar',
-    'absolute inset-x-0 top-0 z-20',
-    'flex flex-wrap items-center justify-between gap-x-3 gap-y-2',
-    'px-5 py-2 max-sm:px-3 max-sm:[justify-content:start] max-sm:text-base max-sm:gap-[2px]',
-    'sm:pr-[52px]',
-    'border-b border-line bg-bg/72 backdrop-blur-md',
-    'font-header font-light text-[0.9375rem]',
-    'transition-colors duration-[180ms] ease-out',
+    css({
+      position: 'absolute',
+      insetInline: '0',
+      top: '0',
+      zIndex: 20,
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      columnGap: '3',
+      rowGap: '2',
+      px: '5',
+      py: '2',
+      borderBottomWidth: '1px',
+      borderBottomStyle: 'solid',
+      borderBottomColor: 'line',
+      backgroundColor: 'color-mix(in oklab, token(colors.bg) 72%, transparent)',
+      // backdrop-filter is applied via a raw rule in app.css — see note there.
+      fontFamily: 'header',
+      fontWeight: '300',
+      fontSize: '0.9375rem',
+      transitionProperty: 'background-color, color, border-color',
+      transitionDuration: '180ms',
+      transitionTimingFunction: 'ease-out',
+      smDown: { px: '3', justifyContent: 'start', fontSize: 'base', gap: '2px' },
+      sm: { paddingRight: '52px' },
+    }),
     !preferences.toolbarVisible && 'hidden',
-    slideIn && preferences.toolbarVisible && 'animate-toolbar-slide-in',
-  ]}
+    slideIn &&
+      preferences.toolbarVisible &&
+      css({ animation: 'toolbar-slide-in 180ms ease-out' }),
+  )}
   bind:clientHeight
 >
-  <nav class="toolbar-nav flex flex-wrap items-center gap-1 max-sm:contents" aria-label="Info">
-    <button
-      type="button"
-      class={btnIcon}
-      aria-label="Why plaintext?"
-      data-tooltip="about"
-      id="btn-info"
-      onclick={onInfoClick}
-    >
+  <nav
+    class={cx(
+      'toolbar-nav',
+      css({
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '1',
+        smDown: { display: 'contents' },
+      })
+    )}
+    aria-label="Info"
+  >
+    <Tooltip text="about" id="btn-info" class={btnIcon} aria-label="Why plaintext?" onclick={onInfoClick}>
       <Icon name="info" />
-    </button>
+    </Tooltip>
   </nav>
   <DocumentTitle />
   <div
-    class="toolbar-controls flex flex-wrap items-center gap-1 ms-auto max-sm:contents sm:ps-2"
+    class={cx(
+      'toolbar-controls',
+      css({
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '1',
+        marginInlineStart: 'auto',
+        smDown: { display: 'contents' },
+        sm: { paddingInlineStart: '2' },
+      })
+    )}
     role="group"
     aria-label="Editor controls"
   >
-    <button
-      type="button"
-      class={btnIcon}
-      aria-label="Documents"
-      data-tooltip="documents"
-      id="btn-documents"
-      onclick={onDocumentsClick}
-    >
+    <Tooltip text="documents" id="btn-documents" class={btnIcon} aria-label="Documents" onclick={onDocumentsClick}>
       <Icon name="documents" />
-    </button>
-    <button
-      type="button"
-      class={btnIcon}
-      aria-label="Settings"
-      data-tooltip="settings"
-      id="btn-settings"
-      onclick={onSettingsClick}
-    >
+    </Tooltip>
+    <Tooltip text="settings" id="btn-settings" class={btnIcon} aria-label="Settings" onclick={onSettingsClick}>
       <Icon name="settings" />
-    </button>
-    <button
-      type="button"
-      class={btnIcon}
-      aria-label="Save as plaintext file"
-      data-tooltip="save"
-      id="btn-save"
-      onclick={saveCurrentDocument}
-    >
+    </Tooltip>
+    <Tooltip text="save" id="btn-save" class={btnIcon} aria-label="Save as plaintext file" onclick={saveCurrentDocument}>
       <Icon name="save" />
-    </button>
-    <button
-      type="button"
-      class={btnIcon}
-      aria-label="Upload text file"
-      data-tooltip="upload"
-      id="btn-upload"
-      onclick={handleUploadClick}
-    >
+    </Tooltip>
+    <Tooltip text="upload" id="btn-upload" class={btnIcon} aria-label="Upload text file" onclick={handleUploadClick}>
       <Icon name="upload" />
-    </button>
+    </Tooltip>
     <input
       type="file"
       id="file-upload"
@@ -171,29 +183,27 @@
       bind:this={fileInputEl}
       onchange={handleFileChange}
     />
-    <button
-      type="button"
+    <Tooltip
+      text={copyTooltip}
       id="btn-copy"
       aria-label={copyLabel}
-      data-tooltip={copyTooltip}
       onclick={handleCopy}
       onpointerleave={clearCopyFeedback}
-      class={[
+      class={cx(
         btnIcon,
-        copyState === 'success' && 'copy-success text-fg',
-        copyState === 'error' && 'copy-error text-error',
-      ]}
+        copyState === 'success' && cx('copy-success', css({ color: 'fg' })),
+        copyState === 'error' && cx('copy-error', css({ color: 'error' })),
+      )}
     >
       <Icon name="copy" id="icon-copy" hidden={copyState !== 'idle'} />
       <Icon name="copy-feedback" id="icon-copy-feedback" hidden={copyState === 'idle'} />
-    </button>
-    <button
-      type="button"
+    </Tooltip>
+    <Tooltip
+      text="theme"
+      id="btn-theme"
       class={btnIcon}
       aria-pressed={preferences.theme === 'dark'}
       aria-label={`Toggle theme. Current theme: ${preferences.theme}.`}
-      data-tooltip="theme"
-      id="btn-theme"
       onclick={() => {
         preferences.toggleTheme();
         announcer.announce('Theme switched to ' + preferences.theme);
@@ -201,17 +211,16 @@
     >
       <Icon name="theme-light" id="icon-theme-light" hidden={preferences.theme !== 'light'} />
       <Icon name="theme-dark" id="icon-theme-dark" hidden={preferences.theme !== 'dark'} />
-    </button>
-    <button
-      type="button"
-      class={[btnIcon, 'mobile-hide-btn sm:hidden']}
+    </Tooltip>
+    <Tooltip
+      text="hide"
+      id="btn-hide-mobile"
+      class={cx(btnIcon, 'mobile-hide-btn', css({ sm: { display: 'none' } }))}
       aria-pressed="false"
       aria-label="Hide navigation icons and editor controls"
-      data-tooltip="hide"
-      id="btn-hide-mobile"
       onclick={() => preferences.toggleToolbar()}
     >
       <Icon name="eye-open" />
-    </button>
+    </Tooltip>
   </div>
 </header>

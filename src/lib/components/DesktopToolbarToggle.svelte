@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { css, cx } from 'styled-system/css';
   import Icon from './Icon.svelte';
+  import Tooltip from './Tooltip.svelte';
   import { iconButton } from './button-classes';
   import { preferences } from '$lib/state/preferences.svelte';
 
@@ -12,19 +14,27 @@
 </script>
 
 <div
-  class="toggle-desktop absolute top-[max(12px,env(safe-area-inset-top))] right-[max(16px,env(safe-area-inset-right))] z-30 max-sm:hidden"
+  class={cx(
+    'toggle-desktop',
+    css({
+      position: 'absolute',
+      top: 'max(12px, env(safe-area-inset-top))',
+      right: 'max(16px, env(safe-area-inset-right))',
+      zIndex: 30,
+      smDown: { display: 'none' },
+    })
+  )}
   id="toggle-desktop"
 >
-  <button
-    type="button"
+  <Tooltip
+    text={tooltip}
     id="btn-toggle-desktop"
+    class={iconButton}
     aria-pressed={!preferences.toolbarVisible}
     aria-label={label}
-    data-tooltip={tooltip}
     onclick={() => preferences.toggleToolbar()}
-    class={iconButton}
   >
     <Icon name="eye-open" id="icon-eye-open" hidden={!preferences.toolbarVisible} />
     <Icon name="eye-closed" id="icon-eye-closed" hidden={preferences.toolbarVisible} />
-  </button>
+  </Tooltip>
 </div>

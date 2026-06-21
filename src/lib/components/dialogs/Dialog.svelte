@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { css, cx } from 'styled-system/css';
   import Icon from '../Icon.svelte';
 
   type Props = {
@@ -49,25 +50,68 @@
 
 <dialog
   {id}
-  class={[
+  class={cx(
     'dialog',
-    'm-auto max-w-[calc(100%-16px)] max-h-[calc(100dvh-16px)] overflow-y-auto',
-    'border border-panel-line bg-panel p-0 text-fg outline-none',
-    'transition-colors duration-[180ms] ease-out',
-    wide ? 'w-[28rem]' : 'w-[26rem]',
-  ]}
+    css({
+      margin: 'auto',
+      maxW: 'calc(100% - 16px)',
+      maxH: 'calc(100dvh - 16px)',
+      overflowY: 'auto',
+      borderWidth: '1px',
+      borderStyle: 'solid',
+      borderColor: 'panelLine',
+      bg: 'panel',
+      p: '0',
+      color: 'fg',
+      outline: 'none',
+      transitionProperty: 'background-color, color, border-color',
+      transitionDuration: '180ms',
+      transitionTimingFunction: 'ease-out',
+    }),
+    wide ? css({ w: '28rem' }) : css({ w: '26rem' }),
+  )}
   aria-labelledby={titleId}
   aria-describedby={descId}
   bind:this={dialogEl}
   onclick={handleBackdropClick}
   onclose={handleClose}
 >
-  <div class="dialog-inner grid gap-5 p-4">
-    <div class="dialog-header flex items-start justify-between gap-4">
-      <h2 class="dialog-title m-0 font-main text-base font-bold" id={titleId}>{title}</h2>
+  <div class={cx('dialog-inner', css({ display: 'grid', gap: '5', p: '4' }))}>
+    <div
+      class={cx(
+        'dialog-header',
+        css({ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4' })
+      )}
+    >
+      <h2
+        class={cx('dialog-title', css({ m: '0', fontFamily: 'main', fontSize: 'base', fontWeight: 'bold' }))}
+        id={titleId}
+      >{title}</h2>
       <button
         type="button"
-        class="dialog-close appearance-none bg-transparent border-0 p-0 text-secondary cursor-pointer transition-colors duration-[180ms] ease-out hover:text-fg focus-visible:text-fg focus-visible:outline-2 focus-visible:outline-muted focus-visible:outline-offset-2 focus-visible:rounded-[2px]"
+        class={cx(
+          'dialog-close',
+          css({
+            appearance: 'none',
+            bg: 'transparent',
+            borderWidth: '0',
+            p: '0',
+            color: 'secondary',
+            cursor: 'pointer',
+            transitionProperty: 'color',
+            transitionDuration: '180ms',
+            transitionTimingFunction: 'ease-out',
+            _hoverable: { _hover: { color: 'fg' } },
+            _focusVisible: {
+              color: 'fg',
+              outlineWidth: '2px',
+              outlineStyle: 'solid',
+              outlineColor: 'muted',
+              outlineOffset: '2px',
+              borderRadius: '2px',
+            },
+          })
+        )}
         aria-label="Close dialog"
         data-tooltip="close"
         onclick={() => dialogEl?.close()}
@@ -75,7 +119,10 @@
         <Icon name="close" size="close" />
       </button>
     </div>
-    <div class="dialog-body grid gap-4 leading-[1.65] text-fg font-dialog" id={descId}>
+    <div
+      class={cx('dialog-body', css({ display: 'grid', gap: '4', lineHeight: '1.65', color: 'fg', fontFamily: 'dialog' }))}
+      id={descId}
+    >
       {@render children()}
     </div>
   </div>

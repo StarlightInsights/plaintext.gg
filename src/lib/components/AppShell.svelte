@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { css, cx } from 'styled-system/css';
   import DesktopToolbarToggle from './DesktopToolbarToggle.svelte';
   import Editor from './Editor.svelte';
   import LiveRegion from './LiveRegion.svelte';
@@ -166,12 +167,22 @@
 
 <div
   id="app-shell"
-  class={[
+  class={cx(
     'app-shell',
-    'relative grid grid-rows-[1fr] min-h-dvh bg-bg text-fg font-main',
-    'transition-colors duration-[180ms] ease-out',
-    loading && 'loading invisible pointer-events-none',
-  ]}
+    css({
+      position: 'relative',
+      display: 'grid',
+      gridTemplateRows: '1fr',
+      minH: '100dvh',
+      bg: 'bg',
+      color: 'fg',
+      fontFamily: 'main',
+      transitionProperty: 'background-color, color, border-color',
+      transitionDuration: '180ms',
+      transitionTimingFunction: 'ease-out',
+    }),
+    loading && cx('loading', css({ visibility: 'hidden', pointerEvents: 'none' })),
+  )}
 >
   <SkipLink />
   <LiveRegion />
@@ -185,7 +196,7 @@
   />
   <DesktopToolbarToggle />
   <MobileToolbarToggle />
-  <h1 class="sr-only">plaintext.gg editor</h1>
+  <h1 class={css({ srOnly: true })}>plaintext.gg editor</h1>
   <Editor bind:this={editor} bind:editorEl {toolbarHeight} {enableMotion} />
   <InfoDialog bind:this={infoDialog} />
   <SettingsDialog bind:this={settingsDialog} />
