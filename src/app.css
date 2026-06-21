@@ -175,6 +175,16 @@
   backdrop-filter: blur(12px);
 }
 
+/* Restore the platform-default font smoothing. Panda's preflight forces
+   `-webkit-font-smoothing: antialiased` (and `-moz-osx-font-smoothing: grayscale`)
+   on <html>, which renders text noticeably lighter/thinner on macOS than the
+   subpixel default. The pre-Panda (Tailwind) build never set this, so the glyph
+   weight looked fuller — match that. Unlayered so it outranks Panda's `@layer reset`. */
+html {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
 /* Universal reduced-motion kill switch — can't scope to every element via utilities. */
 @media (prefers-reduced-motion: reduce) {
   *,
