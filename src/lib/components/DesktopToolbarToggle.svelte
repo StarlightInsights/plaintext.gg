@@ -15,9 +15,10 @@
     'toggle-desktop',
     css({
       position: 'absolute',
-      // Align with the toolbar row icons (header has py-2 = 8px), not 12px,
-      // so the floating eye sits level with the rest of the controls.
-      top: 'max(8px, env(safe-area-inset-top))',
+      // The toolbar icons sit at 8px (header py-2). The eye glyph is ~20% shorter
+      // than the other Phosphor icons, so geometric centering leaves it reading as
+      // a couple pixels high; +1px nudges it down to sit level with the rest.
+      top: 'max(9px, env(safe-area-inset-top))',
       right: 'max(16px, env(safe-area-inset-right))',
       zIndex: 30,
       smDown: { display: 'none' },
