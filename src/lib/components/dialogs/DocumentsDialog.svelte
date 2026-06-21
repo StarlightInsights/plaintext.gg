@@ -110,13 +110,10 @@
           transitionProperty: 'border-color, color',
           transitionDuration: '180ms',
           transitionTimingFunction: 'ease-out',
-          _focus: {
-            borderColor: 'muted',
-            outlineWidth: '2px',
-            outlineStyle: 'solid',
-            outlineColor: 'muted',
-            outlineOffset: '-1px',
-          },
+          // Signal focus with the border color only (matching the create button,
+          // whose border mirrors this via the sibling selector below). No outline,
+          // so the input doesn't read as wider than the button it's joined to.
+          _focus: { borderColor: 'muted' },
         })
       )}
       id="documents-create-input"
