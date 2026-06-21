@@ -353,10 +353,16 @@ test.describe("Toolbar visibility", () => {
 
   test("desktop toggle hides the toolbar", async ({ page }) => {
     await page.goto("/");
+    const toolbar = page.locator("#toolbar");
     await page.locator("#btn-toggle-desktop").click();
-    await expect(page.locator("#toolbar")).not.toHaveClass(/hidden/);
+    await expect(toolbar).not.toHaveClass(/hidden/);
+    // The `hidden` class must actually collapse the toolbar, not just be present
+    // on the element — assert real visibility so a missing `.hidden { display:none }`
+    // rule (e.g. dropped with Tailwind) can't pass on the class string alone.
+    await expect(toolbar).toBeVisible();
     await page.locator("#btn-toggle-desktop").click();
-    await expect(page.locator("#toolbar")).toHaveClass(/hidden/);
+    await expect(toolbar).toHaveClass(/hidden/);
+    await expect(toolbar).toBeHidden();
   });
 
   test("toolbar visibility persists across reload", async ({ page }) => {
@@ -459,9 +465,13 @@ test.describe("Dialogs", () => {
     await page.locator("#btn-info").click();
     const dialog = page.locator("#dialog-info");
     await expect(dialog).toBeVisible();
-    // Click outside the dialog content; Ark's closeOnInteractOutside dismisses it.
-    await page.mouse.click(2, 2);
-    await expect(dialog).not.toBeVisible();
+    // Ark attaches its interact-outside listener on a deferred frame (rAF) after
+    // the dialog reaches data-state="open", so an immediate outside click can win
+    // the race and be missed. Retry the click until the dismiss registers.
+    await expect(async () => {
+      await page.mouse.click(2, 2);
+      await expect(dialog).not.toBeVisible({ timeout: 500 });
+    }).toPass({ timeout: 5000 });
   });
 
   test("info dialog contains GitHub link", async ({ page }) => {

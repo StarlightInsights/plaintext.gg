@@ -170,6 +170,15 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
+/* `.hidden` → display:none. The toolbar and the floating show/hide toggles add
+   this class to collapse themselves (Toolbar/MobileToolbarToggle). Tailwind used
+   to supply this utility; it's now an explicit rule. Kept UNLAYERED on purpose:
+   unlayered styles outrank Panda's `@layer utilities`, so this beats the atomic
+   `display` utility (e.g. `d_flex`) that sits on the same element. */
+.hidden {
+  display: none;
+}
+
 /* Toolbar backdrop blur. Authored raw (not via Panda) on purpose: Panda emits
    `backdrop-filter` AND a redundant `-webkit-backdrop-filter`, and lightningcss
    (build target safari17) then collapses that pair to webkit-only, which modern
