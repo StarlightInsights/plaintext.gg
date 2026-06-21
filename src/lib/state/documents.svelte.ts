@@ -127,9 +127,21 @@ class DocumentsState {
       return this.#enqueue(async () => {
         await deleteRecord(slug);
         this.#persistedVersion = nextVersion;
-        this.#pendingVersion = null;
-        this.#hasPendingEdits = false;
-        clearDraft(slug);
+
+        // Mirror the save branch's guards: an edit that arrived during the
+        // `await` (e.g. the user retyped after emptying) bumps #pendingVersion
+        // past nextVersion and changes this.text, so only retire the pending
+        // state when nothing newer is outstanding — otherwise we'd drop that
+        // edit and erase its draft.
+        if (this.#pendingVersion && compareVersions(this.#pendingVersion, nextVersion) <= 0) {
+          this.#pendingVersion = null;
+        }
+
+        if (this.text === nextText && !this.#pendingVersion) {
+          this.#hasPendingEdits = false;
+          clearDraft(slug);
+        }
+
         this.#broadcastUpdate(nextVersion);
       });
     }

@@ -27,6 +27,16 @@
 
   const stepClass = `btn ${stepButton}`;
 
+  // Zag's stepper triggers act on pointerdown only, so a focused button wouldn't
+  // step on Enter/Space. Wire keyboard activation explicitly to match the pointer
+  // path (and the pre-Ark stepper); setFontSize clamps to the min/max.
+  function stepFontSize(e: KeyboardEvent, delta: number) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      preferences.setFontSize(preferences.fontSize + delta);
+    }
+  }
+
   const settingRow = css({
     display: 'flex',
     alignItems: 'center',
@@ -36,7 +46,9 @@
   const settingControl = css({ display: 'flex', alignItems: 'center', gap: '2' });
   const valueLabel = css({ minW: '4ch', textAlign: 'center', fontVariantNumeric: 'tabular-nums' });
   // The NumberInput needs an input to drive its machine, but this is a bounded
-  // stepper with no free typing — keep it out of the layout and tab order.
+  // stepper with no free typing — keep it out of the layout and tab order. The
+  // visible +/- triggers carry `tabindex={0}` so they stay keyboard-operable
+  // (Zag marks triggers tabindex=-1 by default, assuming the input is reachable).
   const hiddenInput = css({ srOnly: true });
 </script>
 
@@ -77,6 +89,8 @@
       <NumberInput.DecrementTrigger
         id="btn-font-down"
         class={stepClass}
+        tabindex={0}
+        onkeydown={(e) => stepFontSize(e, -FONT_STEP)}
         aria-label="Decrease font size"
       >
         <Icon name="minus" size="small" />
@@ -85,6 +99,8 @@
       <NumberInput.IncrementTrigger
         id="btn-font-up"
         class={stepClass}
+        tabindex={0}
+        onkeydown={(e) => stepFontSize(e, FONT_STEP)}
         aria-label="Increase font size"
       >
         <Icon name="plus" size="small" />
@@ -125,7 +141,7 @@
         ids={{ root: 'btn-italic' }}
         class={pillButton}
       >
-        {preferences.fontItalic ? 'on' : 'off'}
+        <Switch.Label>{preferences.fontItalic ? 'on' : 'off'}</Switch.Label>
         <Switch.HiddenInput />
       </Switch.Root>
     </div>
