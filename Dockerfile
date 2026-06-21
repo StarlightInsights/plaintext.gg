@@ -16,7 +16,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
-RUN pnpm exec vp build
+# Install uses --ignore-scripts above, so the `prepare` codegen is skipped here.
+# Generate SvelteKit types + Panda's styled-system (codegen) and the extracted
+# stylesheet (cssgen) before building, or `vp build` fails on missing imports.
+RUN pnpm exec svelte-kit sync \
+  && pnpm exec panda codegen \
+  && pnpm exec panda cssgen \
+  && pnpm exec vp build
 
 # ---- Serve stage ----
 FROM nginx:alpine

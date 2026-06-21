@@ -1,21 +1,18 @@
 <script lang="ts">
+  import { css, cx } from 'styled-system/css';
+  import { RadioGroup } from '@ark-ui/svelte/radio-group';
   import Dialog from './Dialog.svelte';
-  import { pillButton } from '../button-classes';
+  import { pillButton, segmentedGroup, focusRing1 } from '../button-classes';
   import { goto } from '$app/navigation';
   import { DEFAULT_SLUG } from '$lib/constants';
   import { getSlugFromPath } from '$lib/utils/slug';
   import { announcer } from '$lib/state/announce.svelte';
   import { documents } from '$lib/state/documents.svelte';
-  import type { DocumentRecord } from '$lib/types';
+  import { ui } from '$lib/state/ui.svelte';
+  import type { DocumentRecord, SortMode } from '$lib/types';
 
-  let dialog: Dialog | undefined = $state(undefined);
   let createInput: HTMLInputElement | undefined = $state(undefined);
   let createError = $state('');
-
-  export function show(): void {
-    documents.reloadList();
-    dialog?.show();
-  }
 
   // The root document (`/`) is always shown first, even when empty, so users
   // always have a way back to it from the picker.
@@ -72,7 +69,7 @@
       createInput.focus();
       return;
     }
-    dialog?.close();
+    ui.documentsOpen = false;
     await goto('/' + slug);
   }
 
@@ -80,25 +77,45 @@
     return id === DEFAULT_SLUG ? '/' : '/' + id;
   }
 
-  const sortToggle = `setting-toggle flex-1 ${pillButton}`;
+  const sortToggle = cx(css({ flex: '1' }), pillButton);
 </script>
 
 <Dialog
-  bind:this={dialog}
+  bind:open={ui.documentsOpen}
   id="dialog-documents"
   title="documents"
-  titleId="dialog-documents-title"
   wide
 >
-  <form class="documents-create flex flex-wrap gap-0" id="documents-create" onsubmit={handleCreateSubmit}>
-    <label for="documents-create-input" class="sr-only">New document name</label>
+  <form class={cx('documents-create', css({ display: 'flex', flexWrap: 'wrap', gap: '0' }))} id="documents-create" onsubmit={handleCreateSubmit}>
+    <label for="documents-create-input" class={css({ srOnly: true })}>New document name</label>
     <input
       type="text"
-      class="documents-create-input peer flex-1 appearance-none bg-transparent border border-line px-2.5 py-1
-        text-fg font-dialog text-[0.8125rem] outline-none min-w-0
-        placeholder:text-placeholder
-        transition-[border-color,color] duration-[180ms] ease-out
-        focus:border-muted focus:outline-2 focus:outline-muted focus:outline-offset-[-1px]"
+      class={cx(
+        'documents-create-input',
+        css({
+          flex: '1',
+          appearance: 'none',
+          bg: 'transparent',
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          borderColor: 'line',
+          px: '2.5',
+          py: '1',
+          color: 'fg',
+          fontFamily: 'dialog',
+          fontSize: '0.8125rem',
+          outline: 'none',
+          minW: '0',
+          _placeholder: { color: 'placeholder' },
+          transitionProperty: 'border-color, color',
+          transitionDuration: '180ms',
+          transitionTimingFunction: 'ease-out',
+          // Signal focus with the border color only (matching the create button,
+          // whose border mirrors this via the sibling selector below). No outline,
+          // so the input doesn't read as wider than the button it's joined to.
+          _focus: { borderColor: 'muted' },
+        })
+      )}
       id="documents-create-input"
       bind:this={createInput}
       oninput={handleCreateInput}
@@ -115,52 +132,66 @@
     />
     <button
       type="submit"
-      class="setting-toggle documents-create-btn -ml-px peer-focus:border-muted {pillButton}"
+      class={cx(
+        css({
+          marginLeft: '-1px',
+          // Mirror the input's focus border so the segmented pair stays in sync.
+          '#documents-create-input:focus ~ &': { borderColor: 'muted' },
+        }),
+        pillButton
+      )}
     >create</button>
-    <p id="documents-create-hint" class="sr-only">Lowercase letters, numbers, and hyphens. Must start and end with a letter or number.</p>
+    <p id="documents-create-hint" class={css({ srOnly: true })}>Lowercase letters, numbers, and hyphens. Must start and end with a letter or number.</p>
     <p
       id="documents-create-error"
-      class="documents-create-error w-full mt-1.5 text-error font-dialog text-xs"
+      class={cx('documents-create-error', css({ w: 'full', marginTop: '1.5', color: 'error', fontFamily: 'dialog', fontSize: 'xs' }))}
       role="alert"
       hidden={!createError}
     >{createError}</p>
   </form>
 
-  <div
-    class="documents-sort setting-control--group flex gap-0 [&>button+button]:-ml-px"
-    role="radiogroup"
+  <RadioGroup.Root
+    value={documents.sortMode}
+    onValueChange={(e) => (documents.sortMode = e.value as SortMode)}
+    class={cx('setting-control--group', segmentedGroup)}
     aria-label="Sort order"
   >
-    <button
-      type="button"
-      class={sortToggle}
-      id="btn-sort-alpha"
-      role="radio"
-      aria-checked={documents.sortMode === 'alpha'}
-      onclick={() => documents.setSortMode('alpha')}
-    >a-z</button>
-    <button
-      type="button"
-      class={sortToggle}
-      id="btn-sort-recent"
-      role="radio"
-      aria-checked={documents.sortMode === 'recent'}
-      onclick={() => documents.setSortMode('recent')}
-    >recent</button>
-  </div>
+    <RadioGroup.Item value="alpha" id="btn-sort-alpha" class={sortToggle}>
+      <RadioGroup.ItemText>a-z</RadioGroup.ItemText>
+      <RadioGroup.ItemHiddenInput />
+    </RadioGroup.Item>
+    <RadioGroup.Item value="recent" id="btn-sort-recent" class={sortToggle}>
+      <RadioGroup.ItemText>recent</RadioGroup.ItemText>
+      <RadioGroup.ItemHiddenInput />
+    </RadioGroup.Item>
+  </RadioGroup.Root>
 
-  <ul class="documents-list list-none m-0 p-0 max-h-[60vh] overflow-y-auto" id="documents-list">
+  <ul
+    class={cx('documents-list', css({ listStyle: 'none', m: '0', p: '0', maxH: '60vh', overflowY: 'auto' }))}
+    id="documents-list"
+  >
     {#each sortedRecords as record, i (record.id)}
       <li>
         <a
           href={formatLink(record.id)}
-          class={[
-            'block px-1 py-2 font-dialog text-sm no-underline transition-colors duration-[160ms] ease-out',
-            'hover:text-fg focus-visible:text-fg focus-visible:outline-2 focus-visible:outline-muted focus-visible:outline-offset-1 focus-visible:rounded-[2px]',
-            record.id === documents.currentSlug ? 'active text-fg' : 'text-muted',
-            i > 0 && 'border-t border-line',
-          ]}
-          onclick={() => dialog?.close()}
+          class={cx(
+            css({
+              display: 'block',
+              px: '1',
+              py: '2',
+              fontFamily: 'dialog',
+              fontSize: 'sm',
+              textDecoration: 'none',
+              transitionProperty: 'color',
+              transitionDuration: '160ms',
+              transitionTimingFunction: 'ease-out',
+              _hoverable: { _hover: { color: 'fg' } },
+            }),
+            focusRing1,
+            record.id === documents.currentSlug ? cx('active', css({ color: 'fg' })) : css({ color: 'muted' }),
+            i > 0 && css({ borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: 'line' }),
+          )}
+          onclick={() => (ui.documentsOpen = false)}
         >{formatLink(record.id)}</a>
       </li>
     {/each}

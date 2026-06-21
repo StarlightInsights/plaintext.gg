@@ -36,8 +36,17 @@ export const FONT_WEIGHT_MAP: Readonly<Record<FontFamily, readonly [number, numb
 
 export const COPY_FEEDBACK_MS = 400;
 export const PERSIST_DELAY_MS = 300;
-/** Must match `--animate-toolbar-slide-in` duration in app.css. */
+/**
+ * How long the transient `slideIn` flag stays on after the toolbar reveals. Only
+ * needs to be >= the `toolbar-slide-in` keyframe (180ms, defined in
+ * panda.config.ts and applied inline in Toolbar.svelte); the extra margin lets
+ * the animation finish before AppShell clears the flag.
+ */
 export const TOOLBAR_SLIDE_IN_MS = 200;
+
+/** aria-label for the toolbar show/hide toggles (desktop, mobile, in-toolbar). */
+export const toolbarToggleLabel = (visible: boolean): string =>
+  `${visible ? "Hide" : "Show"} navigation icons and editor controls`;
 
 export const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 export const MAX_SLUG_LENGTH = 64;

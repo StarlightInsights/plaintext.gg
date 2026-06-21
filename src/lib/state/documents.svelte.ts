@@ -1,4 +1,4 @@
-import { PERSIST_DELAY_MS } from "../constants";
+import { DEFAULT_SLUG, PERSIST_DELAY_MS } from "../constants";
 import { deleteRecord, listRecords, loadRecord, saveRecord } from "../db/documents";
 import { clearDraft, readDraft, writeDraft } from "../utils/session-draft";
 import { syncChannelName } from "../utils/storage-keys";
@@ -17,12 +17,7 @@ function generateTabId(): string {
 }
 
 function createSyncMessage(version: Version): SyncMessage {
-  return {
-    type: "text-updated",
-    updatedAt: version.updatedAt,
-    sourceTabId: version.sourceTabId,
-    saveSequence: version.saveSequence,
-  };
+  return { type: "text-updated", ...toVersion(version) };
 }
 
 function parseSyncMessage(value: unknown): SyncMessage | null {
@@ -30,18 +25,13 @@ function parseSyncMessage(value: unknown): SyncMessage | null {
   const v = value as Record<string, unknown>;
   if (v.type !== "text-updated") return null;
   if (!isVersionShape(v)) return null;
-  return {
-    type: "text-updated",
-    updatedAt: v.updatedAt,
-    sourceTabId: v.sourceTabId,
-    saveSequence: v.saveSequence,
-  };
+  return { type: "text-updated", ...toVersion(v) };
 }
 
 export type ApplyTextCallback = (nextText: string) => void;
 
 class DocumentsState {
-  currentSlug: string = $state("current");
+  currentSlug: string = $state(DEFAULT_SLUG);
   text: string = $state("");
   records: DocumentRecord[] = $state([]);
   sortMode: SortMode = $state("alpha");
@@ -88,10 +78,6 @@ class DocumentsState {
     await this.initPersistence();
   }
 
-  setSortMode(mode: SortMode): void {
-    this.sortMode = mode;
-  }
-
   #createNextVersion(): Version {
     return {
       updatedAt: Date.now(),
@@ -121,6 +107,16 @@ class DocumentsState {
     }
   }
 
+  /**
+   * Append a write to the serialized persistence chain. Tasks run one at a time
+   * in order; a failure is swallowed so it can't wedge the chain, and the
+   * returned promise likewise never rejects.
+   */
+  #enqueue(task: () => Promise<void>): Promise<void> {
+    this.#persistChain = this.#persistChain.catch(() => {}).then(task);
+    return this.#persistChain.catch(() => {});
+  }
+
   #persistText(nextText: string): Promise<void> {
     if (!this.#hasPendingEdits) return Promise.resolve();
 
@@ -128,41 +124,47 @@ class DocumentsState {
     const slug = this.currentSlug;
 
     if (!nextText) {
-      this.#persistChain = this.#persistChain
-        .catch(() => {})
-        .then(async () => {
-          await deleteRecord(slug);
-          this.#persistedVersion = nextVersion;
+      return this.#enqueue(async () => {
+        await deleteRecord(slug);
+        this.#persistedVersion = nextVersion;
+
+        // Mirror the save branch's guards: an edit that arrived during the
+        // `await` (e.g. the user retyped after emptying) bumps #pendingVersion
+        // past nextVersion and changes this.text, so only retire the pending
+        // state when nothing newer is outstanding — otherwise we'd drop that
+        // edit and erase its draft.
+        if (this.#pendingVersion && compareVersions(this.#pendingVersion, nextVersion) <= 0) {
           this.#pendingVersion = null;
+        }
+
+        if (this.text === nextText && !this.#pendingVersion) {
           this.#hasPendingEdits = false;
           clearDraft(slug);
-          this.#broadcastUpdate(nextVersion);
-        });
-      return this.#persistChain.catch(() => {});
+        }
+
+        this.#broadcastUpdate(nextVersion);
+      });
     }
 
     const nextRecord = createRecord(nextText, nextVersion, slug);
 
-    this.#persistChain = this.#persistChain
-      .catch(() => {})
-      .then(async () => {
-        const written = await saveRecord(nextRecord);
-        const writtenVersion = toVersion(written);
-        this.#persistedVersion = writtenVersion;
+    return this.#enqueue(async () => {
+      // saveRecord persists the record verbatim, so nextVersion/nextText are
+      // already exactly what landed — no need to read anything back.
+      await saveRecord(nextRecord);
+      this.#persistedVersion = nextVersion;
 
-        if (this.#pendingVersion && compareVersions(this.#pendingVersion, writtenVersion) <= 0) {
-          this.#pendingVersion = null;
-        }
+      if (this.#pendingVersion && compareVersions(this.#pendingVersion, nextVersion) <= 0) {
+        this.#pendingVersion = null;
+      }
 
-        if (this.text === written.text && !this.#pendingVersion) {
-          this.#hasPendingEdits = false;
-          clearDraft(slug);
-        }
+      if (this.text === nextText && !this.#pendingVersion) {
+        this.#hasPendingEdits = false;
+        clearDraft(slug);
+      }
 
-        this.#broadcastUpdate(writtenVersion);
-      });
-
-    return this.#persistChain.catch(() => {});
+      this.#broadcastUpdate(nextVersion);
+    });
   }
 
   handleInput(nextText: string): void {

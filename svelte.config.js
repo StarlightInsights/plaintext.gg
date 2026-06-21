@@ -12,6 +12,21 @@ const config = {
       precompress: false,
       strict: false,
     }),
+    // Panda's generated output. Aliased here (not in tsconfig paths, which would
+    // clobber SvelteKit's generated $lib/$app paths) so both Vite and
+    // svelte-check resolve `styled-system/*` imports.
+    alias: {
+      "styled-system": "./styled-system",
+      "styled-system/*": "./styled-system/*",
+    },
+    // Don't let SvelteKit auto-register the service worker. Its default
+    // registration runs in dev too, where the worker intercepts navigations and
+    // serves a cached shell that collides with Vite's dev module graph — which
+    // can render a raw JS module as the page. We register it ourselves in
+    // +layout.svelte (production only) and tear down any dev-registered worker.
+    serviceWorker: {
+      register: false,
+    },
     csp: {
       mode: "hash",
       directives: {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { css, cx } from 'styled-system/css';
   import { FONT_STACK, FONT_WEIGHT_MAP } from '$lib/constants';
   import { documents } from '$lib/state/documents.svelte';
   import { preferences } from '$lib/state/preferences.svelte';
@@ -91,18 +92,31 @@
   });
 </script>
 
-<main class:dragover class="relative min-h-0 overflow-hidden">
-  <label for="editor" class="sr-only">Plain text editor</label>
+<main class:dragover class={css({ position: 'relative', minH: '0', overflow: 'hidden' })}>
+  <label for="editor" class={css({ srOnly: true })}>Plain text editor</label>
   <textarea
     id="editor"
-    class={[
+    class={cx(
       'editor',
-      'block w-full h-full min-h-0 resize-none border-0 bg-transparent',
-      'p-3 sm:p-4',
-      'leading-[1.65] text-fg caret-fg outline-none',
-      'placeholder:text-placeholder',
-      dragover && 'bg-line',
-    ]}
+      css({
+        display: 'block',
+        w: 'full',
+        h: 'full',
+        minH: '0',
+        resize: 'none',
+        borderWidth: '0',
+        bg: 'transparent',
+        p: '3',
+        sm: { p: '4' },
+        lineHeight: '1.65',
+        color: 'fg',
+        caretColor: 'fg',
+        outline: 'none',
+        _placeholder: { color: 'placeholder' },
+        // Drag highlight: `.dragover` is toggled on the parent <main>.
+        '.dragover &': { bg: 'line' },
+      })
+    )}
     bind:this={editorEl}
     oninput={handleInput}
     ondragover={handleDragover}
@@ -136,7 +150,20 @@
   {#if dragover}
     <div
       aria-hidden="true"
-      class="absolute bottom-6 left-1/2 -translate-x-1/2 px-3.5 py-1.5 text-muted font-dialog text-[0.8125rem] whitespace-nowrap pointer-events-none z-10"
+      class={css({
+        position: 'absolute',
+        bottom: '6',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        px: '3.5',
+        py: '1.5',
+        color: 'muted',
+        fontFamily: 'dialog',
+        fontSize: '0.8125rem',
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        zIndex: 10,
+      })}
     >drop to insert at cursor</div>
   {/if}
 </main>

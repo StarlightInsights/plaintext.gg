@@ -1,9 +1,8 @@
 import { sveltekit } from "@sveltejs/kit/vite";
-import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit()],
+  plugins: [sveltekit()],
   // Target modern browsers so lightningcss preserves color-mix(), backdrop-filter
   // (unprefixed), and other evergreen features. Without this, compiled CSS
   // strips backdrop-filter for older Safari compat.

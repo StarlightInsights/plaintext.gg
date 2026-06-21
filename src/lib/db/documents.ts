@@ -81,13 +81,12 @@ export async function loadRecord(id: string): Promise<DocumentRecord | null> {
   };
 }
 
-export async function saveRecord(record: DocumentRecord): Promise<DocumentRecord> {
+export async function saveRecord(record: DocumentRecord): Promise<void> {
   const db = await openDb();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
   await wrapRequest(store.put(record));
   await awaitTransaction(tx);
-  return record;
 }
 
 export async function deleteRecord(id: string): Promise<void> {
