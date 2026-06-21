@@ -13,8 +13,7 @@
   bind:open={ui.infoOpen}
   id="dialog-info"
   title="about"
-  titleId="dialog-info-title"
-  descId="dialog-info-desc"
+  describe
   wide
 >
   <p class={p}>plaintext.gg is a simple text editor.</p>

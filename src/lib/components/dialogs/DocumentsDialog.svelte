@@ -2,7 +2,7 @@
   import { css, cx } from 'styled-system/css';
   import { RadioGroup } from '@ark-ui/svelte/radio-group';
   import Dialog from './Dialog.svelte';
-  import { pillButton } from '../button-classes';
+  import { pillButton, segmentedGroup, focusRing1 } from '../button-classes';
   import { goto } from '$app/navigation';
   import { DEFAULT_SLUG } from '$lib/constants';
   import { getSlugFromPath } from '$lib/utils/slug';
@@ -77,14 +77,13 @@
     return id === DEFAULT_SLUG ? '/' : '/' + id;
   }
 
-  const sortToggle = cx('setting-toggle', css({ flex: '1' }), pillButton);
+  const sortToggle = cx(css({ flex: '1' }), pillButton);
 </script>
 
 <Dialog
   bind:open={ui.documentsOpen}
   id="dialog-documents"
   title="documents"
-  titleId="dialog-documents-title"
   wide
 >
   <form class={cx('documents-create', css({ display: 'flex', flexWrap: 'wrap', gap: '0' }))} id="documents-create" onsubmit={handleCreateSubmit}>
@@ -137,7 +136,6 @@
     <button
       type="submit"
       class={cx(
-        'setting-toggle documents-create-btn',
         css({
           marginLeft: '-1px',
           // Mirror the input's focus border so the segmented pair stays in sync.
@@ -157,11 +155,8 @@
 
   <RadioGroup.Root
     value={documents.sortMode}
-    onValueChange={(e) => documents.setSortMode(e.value as SortMode)}
-    class={cx(
-      'documents-sort setting-control--group',
-      css({ display: 'flex', gap: '0', '& > * + *': { marginLeft: '-1px' } })
-    )}
+    onValueChange={(e) => (documents.sortMode = e.value as SortMode)}
+    class={cx('setting-control--group', segmentedGroup)}
     aria-label="Sort order"
   >
     <RadioGroup.Item value="alpha" id="btn-sort-alpha" class={sortToggle}>
@@ -194,15 +189,8 @@
               transitionDuration: '160ms',
               transitionTimingFunction: 'ease-out',
               _hoverable: { _hover: { color: 'fg' } },
-              _focusVisible: {
-                color: 'fg',
-                outlineWidth: '2px',
-                outlineStyle: 'solid',
-                outlineColor: 'muted',
-                outlineOffset: '1px',
-                borderRadius: '2px',
-              },
             }),
+            focusRing1,
             record.id === documents.currentSlug ? cx('active', css({ color: 'fg' })) : css({ color: 'muted' }),
             i > 0 && css({ borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: 'line' }),
           )}

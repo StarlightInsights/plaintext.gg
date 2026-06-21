@@ -159,65 +159,21 @@
   font-display: swap;
 }
 
-/* Theme tokens (colors, fonts, the toolbar-slide-in keyframe) now live in
-   panda.config.ts; the light/dark color values are emitted by Panda under
-   :root and [data-theme="dark"]. Only `color-scheme` stays here so native
-   form controls and scrollbars match the theme from first paint. */
-:root {
-  color-scheme: light;
-}
-html[data-theme="dark"] {
-  color-scheme: dark;
-}
-
-/* `.hidden` → display:none. The toolbar and the floating show/hide toggles add
-   this class to collapse themselves (Toolbar/MobileToolbarToggle). Tailwind used
-   to supply this utility; it's now an explicit rule. Kept UNLAYERED on purpose:
-   unlayered styles outrank Panda's `@layer utilities`, so this beats the atomic
-   `display` utility (e.g. `d_flex`) that sits on the same element. */
+/* `.hidden` → display:none, applied by the toolbar and the floating show/hide
+   toggles to collapse themselves. Kept UNLAYERED on purpose: unlayered styles
+   outrank Panda's `@layer utilities`, so this beats the atomic `display` utility
+   (e.g. `d_flex`) sitting on the same element. */
 .hidden {
   display: none;
 }
 
-/* Toolbar backdrop blur. Authored raw (not via Panda) on purpose: Panda emits
-   `backdrop-filter` AND a redundant `-webkit-backdrop-filter`, and lightningcss
-   (build target safari17) then collapses that pair to webkit-only, which modern
-   Chrome/Firefox don't honor. Feeding lightningcss a lone unprefixed declaration
-   makes it emit both prefixes correctly (webkit for Safari 17, standard for the rest). */
+/* Toolbar backdrop blur, authored raw rather than via Panda: Panda emits both
+   `backdrop-filter` and `-webkit-backdrop-filter`, and lightningcss (target
+   safari17) collapses that pair to webkit-only, which modern Chrome/Firefox
+   ignore. A lone unprefixed declaration makes lightningcss emit both prefixes. */
 .toolbar {
   backdrop-filter: blur(12px);
 }
-
-/* Tooltip. Pseudo-element + attr() — no utility equivalent for content. */
-[data-tooltip] {
-  position: relative;
-}
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--colors-fg);
-  color: var(--colors-bg);
-  font: 300 0.75rem/1 var(--fonts-header);
-  padding: 4px 6px;
-  border-radius: 2px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 80ms ease-out;
-  z-index: 30;
-}
-@media (hover: hover) {
-  [data-tooltip]:hover::after {
-    opacity: 1;
-  }
-}
-
-/* Dialogs now use Ark UI's portal-based Dialog (not the native <dialog>): the
-   backdrop overlay is a styled element and the open fade is the `dialog-fade-in`
-   keyframe applied in Dialog.svelte, so no element-level <dialog> rules remain. */
 
 /* Universal reduced-motion kill switch — can't scope to every element via utilities. */
 @media (prefers-reduced-motion: reduce) {

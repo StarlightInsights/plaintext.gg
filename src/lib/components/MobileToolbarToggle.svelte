@@ -3,6 +3,7 @@
   import Icon from './Icon.svelte';
   import Tooltip from './Tooltip.svelte';
   import { iconButton } from './button-classes';
+  import { toolbarToggleLabel } from '$lib/constants';
   import { preferences } from '$lib/state/preferences.svelte';
 </script>
 
@@ -25,7 +26,7 @@
     placement="top"
     id="btn-toggle-mobile"
     aria-pressed="true"
-    aria-label="Show navigation icons and editor controls"
+    aria-label={toolbarToggleLabel(false)}
     class={cx(
       iconButton,
       'btn-float',

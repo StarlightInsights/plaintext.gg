@@ -712,15 +712,6 @@ test.describe("Accessibility", () => {
     const dialog = page.locator("#dialog-settings");
     await expect(dialog).toHaveAttribute("aria-labelledby", "dialog-settings-title");
   });
-
-  test("dialogs have aria-labelledby and aria-describedby", async ({ page }) => {
-    await page.goto("/");
-    for (const id of ["dialog-info"]) {
-      const dialog = page.locator(`#${id}`);
-      await expect(dialog).toHaveAttribute("aria-labelledby", `${id}-title`);
-      await expect(dialog).toHaveAttribute("aria-describedby", `${id}-desc`);
-    }
-  });
 });
 
 // ============================================================

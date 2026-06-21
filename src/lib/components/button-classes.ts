@@ -6,6 +6,46 @@
  */
 import { css, cx } from "styled-system/css";
 
+/**
+ * Keyboard-only focus ring (Panda `_focusVisible`). Extracted so the one outline
+ * treatment stays in sync everywhere it's used — icon buttons, steppers, dialog
+ * links, the dialog close button. The two variants differ only by outline
+ * offset (`focusRing2` = 2px for buttons, `focusRing1` = 1px for inline links);
+ * `cx()` them onto a control instead of re-declaring the block.
+ */
+export const focusRing2 = css({
+  _focusVisible: {
+    color: "fg",
+    outlineWidth: "2px",
+    outlineStyle: "solid",
+    outlineColor: "muted",
+    outlineOffset: "2px",
+    borderRadius: "2px",
+  },
+});
+export const focusRing1 = css({
+  _focusVisible: {
+    color: "fg",
+    outlineWidth: "2px",
+    outlineStyle: "solid",
+    outlineColor: "muted",
+    outlineOffset: "1px",
+    borderRadius: "2px",
+  },
+});
+
+/**
+ * Segmented control wrapper: zero gap with a 1px negative inset so adjacent
+ * control borders overlap into one shared edge. Ark radio items render as
+ * `<label>`, so the overlap targets any adjacent children.
+ */
+export const segmentedGroup = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "0",
+  "& > * + *": { marginLeft: "-1px" },
+});
+
 /** Square icon button (toolbar + toggles). Touch targets expand on small screens. */
 export const iconButton = cx(
   "btn btn-icon",
@@ -25,17 +65,10 @@ export const iconButton = cx(
     transitionDuration: "160ms",
     transitionTimingFunction: "ease-out",
     _hoverable: { _hover: { color: "fg" } },
-    _focusVisible: {
-      color: "fg",
-      outlineWidth: "2px",
-      outlineStyle: "solid",
-      outlineColor: "muted",
-      outlineOffset: "2px",
-      borderRadius: "2px",
-    },
     _disabled: { cursor: "default", color: "placeholder" },
     smDown: { minH: "11", minW: "10", p: "2" },
   }),
+  focusRing2,
 );
 
 /** Pill-style toggle button used in dialogs (font family, weight, italic, reset, sort). */
@@ -88,45 +121,35 @@ export const pillButton = css({
 });
 
 /** +/− step button that flanks a numeric value (e.g. font size). */
-export const stepButton = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bg: "transparent",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "line",
-  p: "1",
-  color: "muted",
-  cursor: "pointer",
-  transitionProperty: "color, border-color",
-  transitionDuration: "160ms",
-  transitionTimingFunction: "ease-out",
-  _hoverable: { _hover: { color: "fg" } },
-  _focusVisible: {
-    color: "fg",
-    outlineWidth: "2px",
-    outlineStyle: "solid",
-    outlineColor: "muted",
-    outlineOffset: "2px",
-    borderRadius: "2px",
-  },
-  _disabled: { cursor: "default", color: "placeholder" },
-});
+export const stepButton = cx(
+  css({
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    bg: "transparent",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "line",
+    p: "1",
+    color: "muted",
+    cursor: "pointer",
+    transitionProperty: "color, border-color",
+    transitionDuration: "160ms",
+    transitionTimingFunction: "ease-out",
+    _hoverable: { _hover: { color: "fg" } },
+    _disabled: { cursor: "default", color: "placeholder" },
+  }),
+  focusRing2,
+);
 
 /** External-link anchor inside dialogs (muted text, hover/focus-visible treatment). */
-export const dialogLink = css({
-  color: "muted",
-  _hoverable: { _hover: { color: "fg" } },
-  _focusVisible: {
-    color: "fg",
-    outlineWidth: "2px",
-    outlineStyle: "solid",
-    outlineColor: "muted",
-    outlineOffset: "1px",
-    borderRadius: "2px",
-  },
-  transitionProperty: "color",
-  transitionDuration: "180ms",
-  transitionTimingFunction: "ease-out",
-});
+export const dialogLink = cx(
+  css({
+    color: "muted",
+    _hoverable: { _hover: { color: "fg" } },
+    transitionProperty: "color",
+    transitionDuration: "180ms",
+    transitionTimingFunction: "ease-out",
+  }),
+  focusRing1,
+);

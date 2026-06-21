@@ -4,27 +4,22 @@
   import Icon from './Icon.svelte';
   import Tooltip from './Tooltip.svelte';
   import { iconButton } from './button-classes';
-  import { COPY_FEEDBACK_MS } from '$lib/constants';
+  import { COPY_FEEDBACK_MS, toolbarToggleLabel } from '$lib/constants';
   import { announcer } from '$lib/state/announce.svelte';
   import { documents } from '$lib/state/documents.svelte';
   import { preferences } from '$lib/state/preferences.svelte';
+  import { ui } from '$lib/state/ui.svelte';
   import { saveCurrentDocument } from '$lib/utils/save';
 
   type Props = {
     clientHeight?: number;
     slideIn: boolean;
-    onInfoClick: () => void;
-    onDocumentsClick: () => void;
-    onSettingsClick: () => void;
     onFilesSelected: (files: FileList) => void;
   };
 
   let {
     clientHeight = $bindable(0),
     slideIn,
-    onInfoClick,
-    onDocumentsClick,
-    onSettingsClick,
     onFilesSelected,
   }: Props = $props();
 
@@ -87,8 +82,6 @@
   const copyTooltip = $derived(
     copyState === 'success' ? 'copied' : copyState === 'error' ? 'copy failed' : 'copy'
   );
-
-  const btnIcon = iconButton;
 </script>
 
 <header
@@ -142,7 +135,7 @@
     )}
     aria-label="Info"
   >
-    <Tooltip text="about" id="btn-info" class={btnIcon} aria-label="Why plaintext?" onclick={onInfoClick}>
+    <Tooltip text="about" id="btn-info" class={iconButton} aria-label="Why plaintext?" onclick={() => ui.openInfo()}>
       <Icon name="info" />
     </Tooltip>
   </nav>
@@ -163,16 +156,16 @@
     role="group"
     aria-label="Editor controls"
   >
-    <Tooltip text="documents" id="btn-documents" class={btnIcon} aria-label="Documents" onclick={onDocumentsClick}>
+    <Tooltip text="documents" id="btn-documents" class={iconButton} aria-label="Documents" onclick={() => ui.openDocuments()}>
       <Icon name="documents" />
     </Tooltip>
-    <Tooltip text="settings" id="btn-settings" class={btnIcon} aria-label="Settings" onclick={onSettingsClick}>
+    <Tooltip text="settings" id="btn-settings" class={iconButton} aria-label="Settings" onclick={() => ui.openSettings()}>
       <Icon name="settings" />
     </Tooltip>
-    <Tooltip text="save" id="btn-save" class={btnIcon} aria-label="Save as plaintext file" onclick={saveCurrentDocument}>
+    <Tooltip text="save" id="btn-save" class={iconButton} aria-label="Save as plaintext file" onclick={saveCurrentDocument}>
       <Icon name="save" />
     </Tooltip>
-    <Tooltip text="upload" id="btn-upload" class={btnIcon} aria-label="Upload text file" onclick={handleUploadClick}>
+    <Tooltip text="upload" id="btn-upload" class={iconButton} aria-label="Upload text file" onclick={handleUploadClick}>
       <Icon name="upload" />
     </Tooltip>
     <input
@@ -190,7 +183,7 @@
       onclick={handleCopy}
       onpointerleave={clearCopyFeedback}
       class={cx(
-        btnIcon,
+        iconButton,
         copyState === 'success' && cx('copy-success', css({ color: 'fg' })),
         copyState === 'error' && cx('copy-error', css({ color: 'error' })),
       )}
@@ -201,7 +194,7 @@
     <Tooltip
       text="theme"
       id="btn-theme"
-      class={btnIcon}
+      class={iconButton}
       aria-pressed={preferences.theme === 'dark'}
       aria-label={`Toggle theme. Current theme: ${preferences.theme}.`}
       onclick={() => {
@@ -215,9 +208,9 @@
     <Tooltip
       text="hide"
       id="btn-hide-mobile"
-      class={cx(btnIcon, 'mobile-hide-btn', css({ sm: { display: 'none' } }))}
+      class={cx(iconButton, 'mobile-hide-btn', css({ sm: { display: 'none' } }))}
       aria-pressed="false"
-      aria-label="Hide navigation icons and editor controls"
+      aria-label={toolbarToggleLabel(true)}
       onclick={() => preferences.toggleToolbar()}
     >
       <Icon name="eye-open" />

@@ -3,13 +3,10 @@
   import Icon from './Icon.svelte';
   import Tooltip from './Tooltip.svelte';
   import { iconButton } from './button-classes';
+  import { toolbarToggleLabel } from '$lib/constants';
   import { preferences } from '$lib/state/preferences.svelte';
 
-  const label = $derived(
-    preferences.toolbarVisible
-      ? 'Hide navigation icons and editor controls'
-      : 'Show navigation icons and editor controls'
-  );
+  const label = $derived(toolbarToggleLabel(preferences.toolbarVisible));
   const tooltip = $derived(preferences.toolbarVisible ? 'hide' : 'show');
 </script>
 

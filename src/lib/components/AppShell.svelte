@@ -187,9 +187,6 @@
   <Toolbar
     bind:clientHeight={toolbarHeight}
     {slideIn}
-    onInfoClick={() => ui.openInfo()}
-    onDocumentsClick={() => ui.openDocuments()}
-    onSettingsClick={() => ui.openSettings()}
     onFilesSelected={handleFilesSelected}
   />
   <DesktopToolbarToggle />

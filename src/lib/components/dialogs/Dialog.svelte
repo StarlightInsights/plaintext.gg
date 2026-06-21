@@ -4,12 +4,14 @@
   import { Dialog } from '@ark-ui/svelte/dialog';
   import { Portal } from '@ark-ui/svelte/portal';
   import Icon from '../Icon.svelte';
+  import { focusRing2 } from '../button-classes';
 
   type Props = {
     id: string;
     title: string;
-    titleId: string;
-    descId?: string;
+    /** Render the body inside Ark's Description so `${id}-desc` + aria-describedby
+     *  get wired up. Only dialogs with prose need it (e.g. about). */
+    describe?: boolean;
     /** Controlled open state — Ark flips this on Esc, backdrop click, or close. */
     open: boolean;
     /** Extra width for dialogs that want more room (e.g. about, documents). */
@@ -17,8 +19,13 @@
     children: Snippet;
   };
 
-  let { id, title, titleId, descId, open = $bindable(false), wide = false, children }: Props =
+  let { id, title, describe = false, open = $bindable(false), wide = false, children }: Props =
     $props();
+
+  // Ark needs explicit ids so aria-labelledby/-describedby resolve; they're a
+  // mechanical function of `id`, so derive them here instead of at every call site.
+  const titleId = $derived(`${id}-title`);
+  const descId = $derived(describe ? `${id}-desc` : undefined);
 
   // Dimmed overlay — replaces the native `dialog::backdrop` (overlay token).
   const backdrop = css({
@@ -80,14 +87,6 @@
     transitionDuration: '180ms',
     transitionTimingFunction: 'ease-out',
     _hoverable: { _hover: { color: 'fg' } },
-    _focusVisible: {
-      color: 'fg',
-      outlineWidth: '2px',
-      outlineStyle: 'solid',
-      outlineColor: 'muted',
-      outlineOffset: '2px',
-      borderRadius: '2px',
-    },
   });
   const bodyCss = css({
     display: 'grid',
@@ -107,12 +106,11 @@
     <Dialog.Positioner class={positioner}>
       <Dialog.Content class={cx('dialog', content, wide ? wideW : narrowW)}>
         <div class={inner}>
-          <div class={cx('dialog-header', header)}>
+          <div class={header}>
             <Dialog.Title class={cx('dialog-title', titleCss)}>{title}</Dialog.Title>
             <Dialog.CloseTrigger
-              class={cx('dialog-close', closeCss)}
+              class={cx('dialog-close', closeCss, focusRing2)}
               aria-label="Close dialog"
-              data-tooltip="close"
             >
               <Icon name="close" size="close" />
             </Dialog.CloseTrigger>
@@ -122,13 +120,13 @@
               {#snippet asChild(props)}
                 <!-- Render a <div> (not Ark's default <p>) so block children like
                      <p>/<ul>/<form> nest validly while keeping aria-describedby. -->
-                <div {...props({ class: cx('dialog-body', bodyCss) })}>
+                <div {...props({ class: bodyCss })}>
                   {@render children()}
                 </div>
               {/snippet}
             </Dialog.Description>
           {:else}
-            <div class={cx('dialog-body', bodyCss)}>
+            <div class={bodyCss}>
               {@render children()}
             </div>
           {/if}

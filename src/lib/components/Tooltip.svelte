@@ -5,9 +5,10 @@
   import { Tooltip } from '@ark-ui/svelte/tooltip';
   import { Portal } from '@ark-ui/svelte/portal';
 
-  // A button with an Ark UI tooltip. The trigger renders a real <button>, so all
-  // button attributes/handlers (id, aria-*, class, onclick) pass straight through
-  // and existing DOM/test hooks are preserved. Replaces the old [data-tooltip] CSS.
+  // A button with an Ark UI tooltip — the app's single tooltip implementation.
+  // The trigger renders a real <button>, so all button attributes/handlers
+  // (id, aria-*, class, onclick) pass straight through and existing DOM/test
+  // hooks are preserved.
   type Props = HTMLButtonAttributes & {
     text: string;
     placement?: 'top' | 'bottom';
