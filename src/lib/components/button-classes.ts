@@ -58,7 +58,21 @@ export const pillButton = css({
   transitionDuration: "160ms",
   transitionTimingFunction: "ease-out",
   _hoverable: { _hover: { color: "fg" } },
-  _focusVisible: {
+  // Keyboard-only focus ring. Ark sets `data-focus-visible` on these controls
+  // even for a mouse click (mirroring native radios), and Panda's `_focusVisible`
+  // matches `[data-focus-visible]` — so a click would leave a heavy 2px outline
+  // stuck on the segmented control. Key the ring off the *native* `:focus-visible`
+  // instead, which is keyboard-only: on the control itself (the plain `reset`
+  // button) and on the hidden radio/switch input inside the label. Two rules, not
+  // one grouped selector, so the button ring survives engines without `:has()`.
+  "&:focus-visible": {
+    color: "fg",
+    outlineWidth: "2px",
+    outlineStyle: "solid",
+    outlineColor: "muted",
+    outlineOffset: "-1px",
+  },
+  "&:has(:focus-visible)": {
     color: "fg",
     outlineWidth: "2px",
     outlineStyle: "solid",
