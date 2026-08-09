@@ -18,17 +18,17 @@
     "check": "vp check && vp run typecheck && vp run test"
   },
   "dependencies": {
-    "@ark-ui/svelte": "^5.22.1"
+    "@ark-ui/svelte": "^5.23.0"
   },
   "devDependencies": {
-    "@pandacss/dev": "^1.11.3",
-    "@playwright/test": "^1.61.0",
+    "@pandacss/dev": "^1.12.0",
+    "@playwright/test": "^1.62.1",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.66.0",
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
-    "@types/node": "^26.0.0",
-    "svelte": "^5.56.3",
-    "svelte-check": "^4.6.0",
+    "@sveltejs/kit": "^2.70.2",
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@types/node": "^26.2.0",
+    "svelte": "^5.56.8",
+    "svelte-check": "^4.7.5",
     "typescript": "^6.0.3",
     "vite": "catalog:",
     "vite-plus": "catalog:"
@@ -41,5 +41,5 @@
   "engines": {
     "node": ">=26"
   },
-  "packageManager": "pnpm@11.8.0"
+  "packageManager": "pnpm@11.20.0"
 }
